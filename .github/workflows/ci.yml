@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install poetry==2.3.2
+
+      - name: Configure Poetry
+        run: poetry config virtualenvs.in-project true
+
+      - name: Install dependencies
+        run: poetry install --with dev,notebook
+
+      - name: Check Poetry config
+        run: poetry check
+
+      - name: Run tests
+        run: poetry run pytest
+
+      - name: Run Ruff
+        run: poetry run ruff check .
+
+      - name: Run mypy
+        run: poetry run mypy src
