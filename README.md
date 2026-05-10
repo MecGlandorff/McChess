@@ -131,6 +131,8 @@ poetry run ruff check .
 poetry run mypy src
 ```
 
+GitHub Actions CI runs `poetry check`, `pytest`, `ruff`, and `mypy` on push and pull request.
+
 Start notebooks through Poetry:
 
 ```bash
