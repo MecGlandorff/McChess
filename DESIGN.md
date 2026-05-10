@@ -1,0 +1,239 @@
+# Design
+
+## System Overview
+
+```text
+PGN games
+  -> dataset builder
+  -> board tensors, policy targets, value targets
+  -> policy/value model
+  -> policy-only bot
+  -> MCTS-enhanced bot
+  -> arena evaluation
+```
+
+## Contract Source
+
+`INVARIANTS.md` is the source of truth for implementation contracts that should not drift silently.
+
+When changing board tensors, move indexing, value perspective, model outputs, dataset splits, or MCTS semantics, update:
+
+- the implementation
+- tests
+- this design document
+- `INVARIANTS.md`
+- any affected config or protocol docs
+
+## Board Representation
+
+Initial encoder: single-position tensor with shape:
+
+```text
+[17, 8, 8]
+```
+
+Implemented plane order:
+
+1. white pawns
+2. white knights
+3. white bishops
+4. white rooks
+5. white queens
+6. white king
+7. black pawns
+8. black knights
+9. black bishops
+10. black rooks
+11. black queens
+12. black king
+13. white to move
+14. white kingside castling right
+15. white queenside castling right
+16. black kingside castling right
+17. black queenside castling right
+
+Additional metadata planes may include:
+
+- en passant file
+- halfmove clock, normalized
+- fullmove number, normalized or clipped
+
+Piece planes are one-hot occupancy planes.
+
+Metadata planes are constant planes filled with `1.0` when true and `0.0` when false.
+
+Square orientation:
+
+- tensor row 0 is rank 8
+- tensor row 7 is rank 1
+- tensor column 0 is file a
+- tensor column 7 is file h
+
+Examples:
+
+- `a8 -> (0, 0)`
+- `h8 -> (0, 7)`
+- `a1 -> (7, 0)`
+- `h1 -> (7, 7)`
+
+The encoder implementation must also document square orientation. Tests should verify that pieces land on expected squares, not only that piece counts match.
+
+## Value Convention
+
+The value target is always from the side-to-move perspective at the current position.
+
+- side to move eventually wins: `+1`
+- side to move eventually loses: `-1`
+- draw: `0`
+
+For example:
+
+- White to move and White wins: `+1`
+- Black to move and White wins: `-1`
+- White to move and Black wins: `-1`
+- Black to move and Black wins: `+1`
+
+## Move Encoding
+
+Implemented policy space: `8 x 8 x 73 = 4672`.
+
+Policy index formula:
+
+```text
+index = from_square * 73 + move_plane
+```
+
+`from_square` uses the `python-chess` square index:
+
+- `a1 = 0`
+- `h1 = 7`
+- `a8 = 56`
+- `h8 = 63`
+
+Move planes:
+
+```text
+0-55   queen-like moves: 8 directions x distances 1-7
+56-63  knight moves: 8 possible offsets
+64-72  underpromotions: knight, bishop, rook x forward, left, right
+```
+
+Queen-like direction order:
+
+1. north `(0, +1)`
+2. north-east `(+1, +1)`
+3. east `(+1, 0)`
+4. south-east `(+1, -1)`
+5. south `(0, -1)`
+6. south-west `(-1, -1)`
+7. west `(-1, 0)`
+8. north-west `(-1, +1)`
+
+Knight direction order:
+
+1. `(+1, +2)`
+2. `(+2, +1)`
+3. `(+2, -1)`
+4. `(+1, -2)`
+5. `(-1, -2)`
+6. `(-2, -1)`
+7. `(-2, +1)`
+8. `(-1, +2)`
+
+Queen promotions are encoded as ordinary queen-like pawn moves.
+
+Underpromotion planes encode only knight, bishop, and rook promotions. Promotion directions are from the moving side's perspective:
+
+- forward
+- left capture
+- right capture
+
+Castling is encoded as the king's ordinary two-square horizontal move.
+
+En passant is encoded as the pawn's ordinary diagonal capture geometry.
+
+The move-indexing layer must provide:
+
+```python
+move_to_index(board, move) -> int
+index_to_move(board, index) -> chess.Move | None
+legal_policy_mask(board) -> np.ndarray
+```
+
+`move_to_index` raises `ValueError` for illegal or unrepresentable moves.
+
+`index_to_move` returns `None` when the index is out of range or does not decode to a legal move in the current position.
+
+`legal_policy_mask` returns a `float32` array of shape `[4672]` with `1.0` at legal move indices.
+
+Legal masking must use python-chess.
+
+The neural model should never be responsible for deciding legality.
+
+## Training Targets
+
+Supervised learning sample:
+
+- input: board tensor
+- policy target: move played in human game
+- value target: final result from side-to-move perspective
+
+Search-distillation sample:
+
+- input: board tensor
+- policy target: MCTS visit distribution
+- value target: final game result or MCTS value target
+
+Self-play sample:
+
+- input: board tensor
+- policy target: MCTS visit distribution
+- value target: final self-play result
+
+## Model Families
+
+Baseline:
+
+- ResNet policy/value network
+
+Ablations:
+
+- History ResNet
+- ResNet + square attention
+- LSTM over board history
+- LSTM + temporal attention
+- Temporal Transformer
+
+## MCTS
+
+Use PUCT-style selection:
+
+```text
+score = Q(s,a) + c_puct * P(s,a) * sqrt(N(s)) / (1 + N(s,a))
+```
+
+Requirements:
+
+- expand legal moves only
+- mask illegal policy logits
+- evaluate leaves with value head
+- flip value sign at each ply during backup
+- support fixed simulation budget
+- handle terminal positions without ordinary network evaluation
+
+## Evaluation
+
+Evaluation should use:
+
+- fixed random seed
+- alternating colors
+- fixed number of games
+- max ply limit
+- same opening positions when comparing models
+- fixed node budgets for MCTS
+- win/draw/loss table
+- illegal move count
+- checkpoint and config identifiers
+- runtime or speed metrics when practical
+
+Do not claim Elo strength without a careful protocol.

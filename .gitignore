@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Data
+data/raw/*
+data/processed/*
+data/manifests/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/manifests/.gitkeep
+
+# Runs and checkpoints
+runs/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+
+# Logs
+*.log
+metrics.jsonl
+
+# Notebooks
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+Untitled*.ipynb
+scratch*.ipynb
+notebooks/scratch/
+
+# Local planning/scratch
+TODO.local.md
+NOTES.local.md
+scratch/
+.local/
+
+# Secrets/local config
+.env
+.env.*
+!.env.example
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
