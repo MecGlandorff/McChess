@@ -1,6 +1,6 @@
 # McChess
 
-A compact AlphaZero-inspired chess research system trained without Stockfish, Syzygy, or external engine labels.
+A compact neural chess research system trained without Stockfish, Syzygy, or external engine labels.
 
 ## Project Goal
 
@@ -96,6 +96,11 @@ Avoid:
 - unsupported Elo claims
 - giant untested code dumps
 
+The project coding standard is documented in `docs/CODING_STANDARD.md`. In
+short: keep the code compact and hackable, make chess/tensor contracts explicit,
+prefer simple functions plus dataclasses, use Poetry and reproducible YAML
+configs, and test every public chess or model-shape contract.
+
 ## Setup
 
 This project uses Poetry with Python 3.11+.
@@ -158,4 +163,4 @@ Reportable results should include configs, seeds, manifests, checkpoints, metric
 
 ## Current Status
 
-Repository foundation, board encoding, move indexing, and legal policy masking are in place.
+Repository foundation, board encoding, move indexing, legal policy masking, and the PGN dataset builder are in place.

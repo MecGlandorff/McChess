@@ -2,7 +2,7 @@
 
 ## Role
 
-You are working on `McChess`, a compact AlphaZero-style chess research system trained without Stockfish or external engine labels.
+You are working on `McChess`, a compact neural chess research system trained without Stockfish or external engine labels.
 
 Act like a careful research software engineer:
 
@@ -59,6 +59,9 @@ If the task touches model architecture, also read:
 - `pytest` for tests
 - `ruff` for linting if configured
 - `mypy` for type checking if configured
+
+Follow `docs/CODING_STANDARD.md` for project style, abstraction level, testing
+expectations, configs, comments, dependencies, and performance tradeoffs.
 
 Use type hints for public functions.
 Prefer small modules with clear APIs.
@@ -135,7 +138,7 @@ Negative, failed, or inconclusive results should stay documented. Do not delete 
 
 ## Claims Discipline
 
-Do not write that McChess is strong, high-Elo, AlphaZero-level, or competitive with modern engines unless that exact claim was measured by a documented protocol.
+Do not write that McChess is strong, high-Elo, or competitive with modern engines unless that exact claim was measured by a documented protocol.
 
 Prefer measured claims:
 
@@ -147,7 +150,7 @@ Avoid unsupported claims:
 
 ```text
 McChess plays at 2000 Elo.
-McChess is close to AlphaZero.
+McChess is close to leading chess engines.
 McChess is stronger than Stockfish.
 ```
 

@@ -1,7 +1,7 @@
 [project]
 name = "mcchess"
 version = "0.1.0"
-description = "A compact AlphaZero-inspired chess research system trained without engine labels."
+description = "A compact neural chess research system trained without engine labels."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

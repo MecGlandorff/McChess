@@ -154,7 +154,7 @@ Avoid:
 ```text
 Model A is 1800 Elo.
 Model A is objectively stronger.
-Model A is close to AlphaZero.
+Model A is close to leading chess engines.
 ```
 
 unless the exact claim is supported by a documented protocol.

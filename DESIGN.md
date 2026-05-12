@@ -221,6 +221,40 @@ Requirements:
 - support fixed simulation budget
 - handle terminal positions without ordinary network evaluation
 
+## Dataset Pipeline
+
+`src/mcchess/data/pgn_reader.py` streams a PGN file and yields one sample
+per played move. Games with unknown result (`*`) or any parse/legality
+error are skipped and counted; no partial samples are emitted.
+
+`src/mcchess/data/dataset_builder.py` calls the reader, assigns each new
+`game_id` a split via a seeded `random.Random`, and writes
+`train.jsonl`, `val.jsonl`, `test.jsonl` plus a manifest JSON.
+
+JSONL sample fields match `docs/DATASET_PROTOCOL.md`:
+
+```json
+{
+  "game_id": "g000000",
+  "ply": 0,
+  "fen": "rnbqkbnr/pppppppp/...",
+  "move_uci": "e2e4",
+  "policy_index": 748,
+  "value": 0.0,
+  "result": "1/2-1/2",
+  "split": "train"
+}
+```
+
+The manifest written next to the shards records source, sha256 checksum,
+raw/used/skipped game counts (with separate corrupt and unknown-result
+counters), position counts per split, the configured ratios and seed,
+filters, `created_at`, `code_version`, and a `schema_version` integer.
+
+The dataset builder does not encode board tensors to disk; downstream
+training code is expected to decode the FEN and call `encode_board`. This
+keeps shards portable and decoupled from any encoder revisions.
+
 ## Evaluation
 
 Evaluation should use:
