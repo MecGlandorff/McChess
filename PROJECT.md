@@ -2,7 +2,7 @@
 
 ## One-Line Description
 
-McChess is a compact AlphaZero-inspired neural chess research system trained without Stockfish, Syzygy, or external engine labels.
+McChess is a compact neural chess research system trained without Stockfish, Syzygy, or external engine labels.
 
 ## Research Goal
 

@@ -1,6 +1,6 @@
 # McChess
 
-A compact AlphaZero-inspired chess research system trained without Stockfish, Syzygy, or external engine labels.
+A compact neural chess research system trained without Stockfish, Syzygy, or external engine labels.
 
 ## Project Goal
 

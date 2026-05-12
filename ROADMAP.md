@@ -55,7 +55,7 @@ Deliverables:
 - `move_to_index`
 - `index_to_move`
 - `legal_policy_mask`
-- AlphaZero-style 4672 policy space if practical
+- fixed 4672 policy space if practical
 - round-trip tests
 
 Exit criteria:
