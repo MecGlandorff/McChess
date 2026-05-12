@@ -96,6 +96,11 @@ Avoid:
 - unsupported Elo claims
 - giant untested code dumps
 
+The project coding standard is documented in `docs/CODING_STANDARD.md`. In
+short: keep the code compact and hackable, make chess/tensor contracts explicit,
+prefer simple functions plus dataclasses, use Poetry and reproducible YAML
+configs, and test every public chess or model-shape contract.
+
 ## Setup
 
 This project uses Poetry with Python 3.11+.

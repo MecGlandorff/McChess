@@ -60,6 +60,9 @@ If the task touches model architecture, also read:
 - `ruff` for linting if configured
 - `mypy` for type checking if configured
 
+Follow `docs/CODING_STANDARD.md` for project style, abstraction level, testing
+expectations, configs, comments, dependencies, and performance tradeoffs.
+
 Use type hints for public functions.
 Prefer small modules with clear APIs.
 
