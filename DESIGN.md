@@ -223,18 +223,13 @@ Requirements:
 
 ## Dataset Pipeline
 
-The PGN dataset builder lives under `src/mcchess/data/`:
+`src/mcchess/data/pgn_reader.py` streams a PGN file and yields one sample
+per played move. Games with unknown result (`*`) or any parse/legality
+error are skipped and counted; no partial samples are emitted.
 
-- `pgn_reader.py` provides `iter_pgn_games(stream)` and
-  `iter_samples(games, ..., counters=...)`. The reader skips games whose
-  `Result` header is `*` (counted as unknown-result) and games with parse
-  or legality errors (counted as corrupt), and never emits partial samples
-  from a corrupt game.
-- `dataset_builder.py` provides `BuildConfig` and `build_dataset(config)`.
-  It walks the PGN twice: pass one assigns each game a split using a
-  seeded `random.Random`; pass two streams samples through the reader and
-  routes them to `train.jsonl`, `val.jsonl`, and `test.jsonl` under the
-  configured output directory.
+`src/mcchess/data/dataset_builder.py` calls the reader, assigns each new
+`game_id` a split via a seeded `random.Random`, and writes
+`train.jsonl`, `val.jsonl`, `test.jsonl` plus a manifest JSON.
 
 JSONL sample fields match `docs/DATASET_PROTOCOL.md`:
 
