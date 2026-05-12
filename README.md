@@ -158,4 +158,4 @@ Reportable results should include configs, seeds, manifests, checkpoints, metric
 
 ## Current Status
 
-Repository foundation, board encoding, move indexing, and legal policy masking are in place.
+Repository foundation, board encoding, move indexing, legal policy masking, and the PGN dataset builder are in place.
