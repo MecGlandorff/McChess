@@ -1,10 +1,11 @@
 """Board tensor encoding.
 
-The single-board encoder uses 17 planes:
+The single-board encoder uses 18 planes:
 
 - 12 piece planes in white-then-black, pawn/knight/bishop/rook/queen/king order
 - 1 side-to-move metadata plane
 - 4 castling-right metadata planes
+- 1 en-passant target-square plane
 
 Square orientation is board-diagram orientation: tensor row 0 is rank 8,
 row 7 is rank 1, column 0 is file a, and column 7 is file h.
@@ -38,6 +39,7 @@ METADATA_PLANE_NAMES: Final[tuple[str, ...]] = (
     "white_queenside_castling",
     "black_kingside_castling",
     "black_queenside_castling",
+    "en_passant_target",
 )
 
 PLANE_NAMES: Final[tuple[str, ...]] = PIECE_PLANE_NAMES + METADATA_PLANE_NAMES
@@ -75,8 +77,10 @@ def square_to_tensor_coords(square: chess.Square) -> tuple[int, int]:
 def encode_board(board: chess.Board) -> np.ndarray:
     """Encode a `python-chess` board as a `float32` tensor.
 
-    Piece planes contain one-hot occupancy. Metadata planes are filled with
-    either `1.0` or `0.0` across all 64 squares.
+    Piece planes contain one-hot occupancy. Side-to-move and castling metadata
+    planes are filled with either `1.0` or `0.0` across all 64 squares. The
+    en-passant plane is sparse: it marks the target square only when an
+    en-passant capture is currently legal.
     """
 
     tensor = np.zeros(BOARD_TENSOR_SHAPE, dtype=np.float32)
@@ -96,5 +100,8 @@ def encode_board(board: chess.Board) -> np.ndarray:
         tensor[15, :, :] = 1.0
     if board.has_queenside_castling_rights(chess.BLACK):
         tensor[16, :, :] = 1.0
+    if board.has_legal_en_passant() and board.ep_square is not None:
+        row, col = square_to_tensor_coords(board.ep_square)
+        tensor[17, row, col] = 1.0
 
     return tensor
