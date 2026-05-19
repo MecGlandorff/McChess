@@ -26,10 +26,10 @@ When changing board tensors, move indexing, value perspective, model outputs, da
 
 ## Board Representation
 
-Initial encoder: single-position tensor with shape:
+Implemented encoder: single-position tensor with shape:
 
 ```text
-[17, 8, 8]
+[18, 8, 8]
 ```
 
 Implemented plane order:
@@ -51,16 +51,40 @@ Implemented plane order:
 15. white queenside castling right
 16. black kingside castling right
 17. black queenside castling right
+18. en-passant target square
 
-Additional metadata planes may include:
+Future metadata planes may include:
 
-- en passant file
 - halfmove clock, normalized
 - fullmove number, normalized or clipped
 
 Piece planes are one-hot occupancy planes.
 
-Metadata planes are constant planes filled with `1.0` when true and `0.0` when false.
+Side-to-move and castling metadata planes are constant planes filled with `1.0`
+when true and `0.0` when false.
+
+The en-passant target plane is sparse. It is all zeros unless
+`python-chess` reports that an en-passant capture is legal in the current
+position. When legal, the plane contains `1.0` only on the en-passant target
+square. For example, after `1. e4 a6 2. e5 d5`, White can play `exd6 e.p.`, so
+the target square `d6` is marked. A FEN en-passant square that does not permit a
+legal en-passant capture is not encoded.
+
+Rationale:
+
+- Including legal en-passant availability removes an input alias where two
+  positions with identical pieces, castling rights, and side to move can have
+  different legal policy targets.
+- The legal policy mask remains the source of truth for move legality; the
+  neural network is not responsible for deciding whether en passant is legal.
+
+Caveats:
+
+- This changes the model input shape, so models trained with the older
+  17-plane encoder would not be checkpoint-compatible.
+- The plane encodes current legal en-passant availability only. It does not
+  encode longer history, repetition state, the halfmove clock, or the fullmove
+  number.
 
 Square orientation:
 

@@ -8,7 +8,7 @@ def test_initial_position_shape_and_dtype() -> None:
     tensor = encode_board(chess.Board())
 
     assert tensor.shape == BOARD_TENSOR_SHAPE
-    assert tensor.shape == (17, 8, 8)
+    assert tensor.shape == (18, 8, 8)
     assert tensor.dtype == np.float32
 
 
@@ -76,3 +76,57 @@ def test_castling_right_planes_update_after_king_move() -> None:
     assert np.all(after[PLANE_NAMES.index("white_queenside_castling")] == 0.0)
     assert np.all(after[PLANE_NAMES.index("black_kingside_castling")] == 1.0)
     assert np.all(after[PLANE_NAMES.index("black_queenside_castling")] == 1.0)
+
+
+def test_initial_position_has_empty_en_passant_plane() -> None:
+    tensor = encode_board(chess.Board())
+
+    assert np.all(tensor[PLANE_NAMES.index("en_passant_target")] == 0.0)
+
+
+def test_legal_en_passant_target_square_is_encoded() -> None:
+    board = chess.Board()
+    for uci in ("e2e4", "a7a6", "e4e5", "d7d5"):
+        board.push(chess.Move.from_uci(uci))
+
+    tensor = encode_board(board)
+    plane = tensor[PLANE_NAMES.index("en_passant_target")]
+    row, col = square_to_tensor_coords(chess.D6)
+
+    assert board.has_legal_en_passant()
+    assert board.ep_square == chess.D6
+    assert plane[row, col] == 1.0
+    assert int(plane.sum()) == 1
+
+
+def test_en_passant_plane_disambiguates_identical_piece_placement() -> None:
+    board = chess.Board()
+    for uci in ("e2e4", "a7a6", "e4e5", "d7d5"):
+        board.push(chess.Move.from_uci(uci))
+
+    fen_parts = board.fen().split()
+    fen_parts[3] = "-"
+    without_ep_right = chess.Board(" ".join(fen_parts))
+
+    with_ep_tensor = encode_board(board)
+    without_ep_tensor = encode_board(without_ep_right)
+    ep_plane_index = PLANE_NAMES.index("en_passant_target")
+
+    assert board.board_fen() == without_ep_right.board_fen()
+    assert board.turn == without_ep_right.turn
+    assert board.castling_rights == without_ep_right.castling_rights
+    assert np.array_equal(with_ep_tensor[:ep_plane_index], without_ep_tensor[:ep_plane_index])
+    assert not np.array_equal(with_ep_tensor[ep_plane_index], without_ep_tensor[ep_plane_index])
+
+
+def test_stale_en_passant_square_is_not_encoded() -> None:
+    board = chess.Board(
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
+    )
+
+    tensor = encode_board(board)
+    plane = tensor[PLANE_NAMES.index("en_passant_target")]
+
+    assert board.ep_square == chess.E3
+    assert not board.has_legal_en_passant()
+    assert np.all(plane == 0.0)

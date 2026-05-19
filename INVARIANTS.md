@@ -14,14 +14,18 @@ If an implementation changes one of these contracts, update this file, `DESIGN.m
 ## Board Encoding
 
 - Single-board tensors use shape `[planes, 8, 8]`.
-- The current single-board encoder uses shape `[17, 8, 8]`.
+- The current single-board encoder uses shape `[18, 8, 8]`.
 - Batched single-board tensors use shape `[batch, planes, 8, 8]`.
 - Plane dtype is `float32`.
 - Board orientation is row 0 = rank 8, row 7 = rank 1, column 0 = file a, column 7 = file h.
 - The exact plane order must be documented in `DESIGN.md`.
 - Side-to-move metadata must be explicit in the tensor representation.
 - Castling-right metadata must be explicit if the current encoder uses it.
-- En passant, halfmove, and fullmove metadata must be documented if added.
+- En-passant metadata must be explicit in the current tensor representation.
+- The current en-passant plane marks the legal target square only when
+  `python-chess` reports that an en-passant capture is legal; stale FEN
+  en-passant squares are encoded as all zeros.
+- Halfmove and fullmove metadata must be documented if added.
 
 ## Value Convention
 
