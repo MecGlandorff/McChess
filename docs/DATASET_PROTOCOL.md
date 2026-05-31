@@ -117,6 +117,8 @@ Every processed dataset should save a manifest:
   "num_games_raw": 0,
   "num_games_used": 0,
   "num_games_skipped": 0,
+  "num_games_skipped_corrupt": 0,
+  "num_games_skipped_unknown_result": 0,
   "num_duplicate_games": 0,
   "num_positions": 0,
   "filters": {},

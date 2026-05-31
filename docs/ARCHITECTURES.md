@@ -19,10 +19,16 @@ Purpose:
 - fast inference
 - strong enough for MCTS experiments
 
+Current implementation:
+
+- `src/mcchess/model/network.py`
+- class: `PolicyValueResNet`
+- config: `ResNetConfig`
+
 Input:
 
 ```text
-[batch, planes, 8, 8]
+[batch, 18, 8, 8]
 ```
 
 Architecture:
@@ -32,6 +38,13 @@ conv stem
 residual tower
 policy head
 value head
+```
+
+Outputs:
+
+```text
+policy_logits: [batch, 4672]
+value: [batch]
 ```
 
 ## 2. History ResNet

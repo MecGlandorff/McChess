@@ -148,6 +148,7 @@ Current smoke notebooks:
 
 - `notebooks/encoding_smoke_test.ipynb`
 - `notebooks/move_indexing_smoke_test.ipynb`
+- `notebooks/dataset_builder_smoke_test.ipynb`
 
 ## Research Discipline
 
