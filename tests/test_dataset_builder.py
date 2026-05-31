@@ -43,6 +43,7 @@ def test_writes_shards_and_manifest(tmp_path):
     required = {
         "source", "source_description", "source_checksum",
         "num_games_raw", "num_games_used", "num_games_skipped",
+        "num_games_skipped_corrupt", "num_games_skipped_unknown_result",
         "num_duplicate_games", "num_positions",
         "filters", "split", "split_seed",
         "created_at", "code_version", "schema_version",
@@ -51,6 +52,8 @@ def test_writes_shards_and_manifest(tmp_path):
     assert m["num_games_raw"] == 10
     assert m["num_games_used"] == 10
     assert m["num_games_skipped"] == 0
+    assert m["num_games_skipped_corrupt"] == 0
+    assert m["num_games_skipped_unknown_result"] == 0
     assert m["split_seed"] == 0
     assert m["split"]["ratios"] == [0.6, 0.2, 0.2]
 
@@ -107,3 +110,5 @@ def test_corrupt_and_unknown_are_counted(tmp_path):
     assert m["num_games_raw"] == 3
     assert m["num_games_used"] == 1
     assert m["num_games_skipped"] == 2
+    assert m["num_games_skipped_corrupt"] == 1
+    assert m["num_games_skipped_unknown_result"] == 1

@@ -218,7 +218,9 @@ Self-play sample:
 
 Baseline:
 
-- ResNet policy/value network
+- `PolicyValueResNet`: compact single-board ResNet policy/value network.
+  Current input shape is `[batch, 18, 8, 8]`; outputs are
+  `policy_logits: [batch, 4672]` and `value: [batch]`.
 
 Ablations:
 

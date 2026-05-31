@@ -105,6 +105,20 @@ Recommended serialized fields:
 }
 ```
 
+## PyTorch Loader
+
+`SupervisedChessDataset` reads one JSONL shard, decodes each `fen` with
+`python-chess`, calls `encode_board`, and returns model-ready tensors:
+
+```text
+board: [18, 8, 8] float32
+policy_index: scalar int64
+value: scalar float32
+```
+
+The loader does not store encoded tensors on disk. FEN remains the serialized
+dataset source of truth.
+
 ## Manifest
 
 Every processed dataset should save a manifest:
@@ -117,6 +131,8 @@ Every processed dataset should save a manifest:
   "num_games_raw": 0,
   "num_games_used": 0,
   "num_games_skipped": 0,
+  "num_games_skipped_corrupt": 0,
+  "num_games_skipped_unknown_result": 0,
   "num_duplicate_games": 0,
   "num_positions": 0,
   "filters": {},
