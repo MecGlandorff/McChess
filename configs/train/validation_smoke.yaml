@@ -1,0 +1,26 @@
+# Development-only supervised run that should show validation loss movement.
+#
+# Compared with tiny_loss_curve.yaml, this uses more data, fewer epochs, and a
+# lower learning rate. It is still a smoke run, not a strength experiment.
+
+train_path: data/processed/lichess_2013_01_sample1000/train.jsonl
+val_path: data/processed/lichess_2013_01_sample1000/val.jsonl
+dataset_manifest_path: data/manifests/lichess_2013_01_sample1000_manifest.json
+output_dir: runs/validation_smoke
+
+seed: 20260601
+device: auto
+batch_size: 128
+epochs: 5
+max_train_samples: 20000
+max_val_samples: 2033
+learning_rate: 0.0005
+weight_decay: 0.001
+value_weight: 1.0
+num_workers: 0
+log_every_steps: 50
+
+model:
+  channels: 16
+  num_blocks: 1
+  value_hidden_dim: 32
