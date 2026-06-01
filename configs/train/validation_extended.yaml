@@ -1,0 +1,26 @@
+# More extensive local supervised run.
+#
+# This is about 50x the validation_smoke.yaml compute budget on the current
+# local sample: full train shard, full validation shard, more epochs, and a
+# wider model. It is still a local development run, not a reportable strength
+# experiment.
+
+train_path: data/processed/lichess_2013_01_sample1000/train.jsonl
+val_path: data/processed/lichess_2013_01_sample1000/val.jsonl
+dataset_manifest_path: data/manifests/lichess_2013_01_sample1000_manifest.json
+output_dir: runs/validation_extended
+
+seed: 20260601
+device: auto
+batch_size: 128
+epochs: 25
+learning_rate: 0.0003
+weight_decay: 0.001
+value_weight: 1.0
+num_workers: 0
+log_every_steps: 100
+
+model:
+  channels: 32
+  num_blocks: 1
+  value_hidden_dim: 64

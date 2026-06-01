@@ -1,0 +1,26 @@
+# Development-only supervised training smoke run.
+#
+# This is intended to show epoch-by-epoch loss movement on a bounded local
+# subset. It is not a reportable strength experiment.
+
+train_path: data/processed/lichess_2013_01_sample1000/train.jsonl
+val_path: data/processed/lichess_2013_01_sample1000/val.jsonl
+dataset_manifest_path: data/manifests/lichess_2013_01_sample1000_manifest.json
+output_dir: runs/tiny_loss_curve
+
+seed: 20260601
+device: auto
+batch_size: 64
+epochs: 20
+max_train_samples: 2560
+max_val_samples: 512
+learning_rate: 0.003
+weight_decay: 0.0001
+value_weight: 1.0
+num_workers: 0
+log_every_steps: 20
+
+model:
+  channels: 16
+  num_blocks: 1
+  value_hidden_dim: 32
