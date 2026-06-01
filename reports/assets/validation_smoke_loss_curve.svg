@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="460" viewBox="0 0 820 460">
+  <rect width="100%" height="100%" fill="#ffffff" />
+  <text x="410.0" y="22" text-anchor="middle" font-size="16" font-family="Arial, sans-serif" fill="#111827">Supervised Validation Smoke Loss Curve</text>
+  <g font-family="Arial, sans-serif">
+    <line x1="70" y1="30.0" x2="792" y2="30.0" stroke="#e5e7eb" /><text x="60" y="34.0" text-anchor="end" font-size="12" fill="#374151">8.06</text><line x1="70" y1="104.0" x2="792" y2="104.0" stroke="#e5e7eb" /><text x="60" y="108.0" text-anchor="end" font-size="12" fill="#374151">7.77</text><line x1="70" y1="178.0" x2="792" y2="178.0" stroke="#e5e7eb" /><text x="60" y="182.0" text-anchor="end" font-size="12" fill="#374151">7.47</text><line x1="70" y1="252.0" x2="792" y2="252.0" stroke="#e5e7eb" /><text x="60" y="256.0" text-anchor="end" font-size="12" fill="#374151">7.18</text><line x1="70" y1="326.0" x2="792" y2="326.0" stroke="#e5e7eb" /><text x="60" y="330.0" text-anchor="end" font-size="12" fill="#374151">6.89</text><line x1="70" y1="400.0" x2="792" y2="400.0" stroke="#e5e7eb" /><text x="60" y="404.0" text-anchor="end" font-size="12" fill="#374151">6.60</text>
+    <line x1="70" y1="30" x2="70" y2="400" stroke="#111827" />
+    <line x1="70" y1="400" x2="792" y2="400" stroke="#111827" />
+    <text x="70.0" y="432" text-anchor="middle" font-size="12" fill="#374151">1</text><text x="792.0" y="432" text-anchor="middle" font-size="12" fill="#374151">5</text>
+    <text x="410.0" y="452" text-anchor="middle" font-size="13" fill="#111827">Epoch</text>
+    <text x="18" y="230.0" transform="rotate(-90 18 230.0)" text-anchor="middle" font-size="13" fill="#111827">Total loss</text>
+    <polyline points="70.0,55.5 250.5,288.1 431.0,328.1 611.5,353.0 792.0,374.5" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+    <polyline points="70.0,230.8 250.5,276.7 431.0,291.7 611.5,299.5 792.0,310.9" fill="none" stroke="#dc2626" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+    <rect x="615" y="42" width="160" height="52" fill="#ffffff" stroke="#d1d5db" />
+    <line x1="630" y1="62" x2="662" y2="62" stroke="#2563eb" stroke-width="3" />
+    <text x="672" y="66" font-size="12" fill="#111827">train total</text>
+    <line x1="630" y1="82" x2="662" y2="82" stroke="#dc2626" stroke-width="3" />
+    <text x="672" y="86" font-size="12" fill="#111827">val total</text>
+  </g>
+</svg>

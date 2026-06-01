@@ -162,6 +162,23 @@ The project keeps technical contracts and reproducibility rules in:
 
 Reportable results should include configs, seeds, manifests, checkpoints, metrics, and evaluation metadata. Weak, failed, and inconclusive runs should be documented when they answer a research question or expose a limitation.
 
+## Early Smoke Reports
+
+Development-only reports live in `reports/`. The first extended validation run
+shows that the current model, loader, loss, metrics, checkpoint, and plot path
+work end to end on the full local 1,000-game (ver small) Lichess sample, with validation
+loss improving before mild late overfitting. This run is very far from an actual training run. 
+
+![Extended validation loss curve](reports/assets/validation_extended_loss_curve.svg)
+
+- `reports/2026-06-01-tiny-loss-smoke.md`
+- train total loss: `7.7169 -> 3.5878` over 25 local epochs
+- validation total loss: `7.3424 -> 5.9418` at best epoch 13
+- final validation total loss: `6.2109` at epoch 25
+- runtime: `357.7s` total on MPS
+
+This is not a strength result and is not a reportable experiment.
+
 ## Current Status
 
 Repository foundation, board encoding, move indexing, legal policy masking, and the PGN dataset builder are in place.
