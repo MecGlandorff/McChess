@@ -87,6 +87,25 @@ def test_manifest_counts_match_files(tmp_path):
     assert m["num_games_used"] + m["num_games_skipped"] == m["num_games_raw"]
 
 
+def test_progress_enabled_build_writes_dataset(tmp_path):
+    src = tmp_path / "raw.pgn"
+    write_pgn(src, 2)
+    out = tmp_path / "processed" / "ds"
+    manifest_path = tmp_path / "manifests" / "ds.json"
+
+    build_dataset(
+        src,
+        out,
+        manifest_path,
+        split_ratios=(0.6, 0.2, 0.2),
+        split_seed=0,
+        show_progress=True,
+    )
+
+    assert (out / "train.jsonl").exists()
+    assert json.loads(manifest_path.read_text())["num_games_raw"] == 2
+
+
 def test_corrupt_and_unknown_are_counted(tmp_path):
     good = DRAW.format(i=0)
     corrupt = textwrap.dedent("""\

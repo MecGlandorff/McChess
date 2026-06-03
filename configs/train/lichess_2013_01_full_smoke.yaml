@@ -1,0 +1,26 @@
+# Full-month supervised smoke run.
+#
+# This validates the 2013-01 full-month data path with bounded samples before
+# spending time on a full training pass. It is not a strength experiment.
+
+train_path: data/processed/lichess_2013_01_full/train.jsonl
+val_path: data/processed/lichess_2013_01_full/val.jsonl
+dataset_manifest_path: data/manifests/lichess_2013_01_full_manifest.json
+output_dir: runs/lichess_2013_01_full_smoke
+
+seed: 20260601
+device: auto
+batch_size: 128
+epochs: 3
+max_train_samples: 100000
+max_val_samples: 10000
+learning_rate: 0.0005
+weight_decay: 0.001
+value_weight: 1.0
+num_workers: 0
+log_every_steps: 100
+
+model:
+  channels: 32
+  num_blocks: 1
+  value_hidden_dim: 64

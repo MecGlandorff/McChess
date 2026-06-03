@@ -1,0 +1,21 @@
+source: data/raw/lichess/lichess_db_standard_rated_2013-01.pgn
+output_dir: data/processed/lichess_2013_01_full
+manifest_path: data/manifests/lichess_2013_01_full_manifest.json
+
+source_description: >-
+  Full Lichess standard rated 2013-01 PGN archive; human moves/results only;
+  PGN comments ignored by parser.
+
+split_ratios: [0.98, 0.01, 0.01]
+split_seed: 20260601
+show_progress: true
+
+filters:
+  source: lichess standard rated
+  month: "2013-01"
+  sample: full_month
+  variant: standard
+  engine_labels_used: false
+  pgn_comments_used: false
+  duplicate_handling: kept
+  split_by: game
