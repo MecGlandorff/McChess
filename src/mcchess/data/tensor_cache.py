@@ -17,7 +17,7 @@ import chess
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from tqdm.auto import tqdm
+from tqdm.auto import tqdm  # type: ignore[import-untyped]
 
 from mcchess.board import BOARD_TENSOR_SHAPE, encode_board
 from mcchess.data.dataset_builder import DatasetSample
