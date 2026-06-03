@@ -170,7 +170,7 @@ def build_record(
         source_url=archive_url(month),
         source_description=SOURCE_DESCRIPTION,
         license=LICENSE_NOTE,
-        acquired_at=dt.datetime.now(dt.UTC).isoformat(),
+        acquired_at=dt.datetime.now(dt.timezone.utc).isoformat(),
         output_path=str(output_path),
         size_bytes=output_path.stat().st_size,
         sha256=checksum,

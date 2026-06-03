@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from pathlib import Path
 from typing import TypedDict
 
@@ -23,16 +24,20 @@ class SupervisedTensorSample(TypedDict):
 def read_jsonl_samples(path: str | Path) -> list[DatasetSample]:
     """Read supervised dataset-builder samples from one JSONL shard."""
 
+    return list(iter_jsonl_samples(path))
+
+
+def iter_jsonl_samples(path: str | Path) -> Iterator[DatasetSample]:
+    """Stream supervised dataset-builder samples from one JSONL shard."""
+
     shard_path = Path(path)
-    samples: list[DatasetSample] = []
     with shard_path.open(encoding="utf-8") as f:
         for line_number, line in enumerate(f, start=1):
             if not line.strip():
                 continue
             sample = json.loads(line)
             _validate_sample(sample, shard_path, line_number)
-            samples.append(sample)
-    return samples
+            yield sample
 
 
 class SupervisedChessDataset(Dataset):

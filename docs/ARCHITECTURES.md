@@ -141,6 +141,48 @@ current-position token
 policy/value heads
 ```
 
+## Later Optional: NNUE-Style Sparse Accumulator
+
+Purpose:
+
+- test whether sparse chess features plus a compact accumulator can improve
+  inference speed or strength per second under limited compute
+- compare a non-convolutional inductive bias against the ResNet and temporal
+  families
+
+This must be a McChess-defined architecture. Do not import Stockfish NNUE
+weights, train from engine evaluations, or use external best-move labels.
+
+Possible input:
+
+```text
+[batch, num_sparse_features]
+```
+
+or an incremental accumulator state derived from a documented sparse feature
+schema.
+
+Required outputs remain:
+
+```text
+policy_logits: [batch, 4672]
+value: [batch]
+```
+
+Design constraints:
+
+- legal move masking remains external and mandatory
+- feature encoding must include side-to-move perspective explicitly
+- castling and en-passant information must be represented if needed for policy
+  prediction
+- incremental accumulator updates, if implemented, must match full
+  recomputation in tests
+- report parameter count and positions/sec alongside loss or arena results
+
+An NNUE-style value-only scorer can be studied as a separate experimental bot,
+but it must be documented as value-only and cannot silently replace the
+policy/value model interface used by neural policy and MCTS components.
+
 ## Architecture Comparison Requirements
 
 Each architecture needs:

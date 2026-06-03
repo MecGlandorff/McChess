@@ -13,10 +13,11 @@ import random
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TextIO, TypedDict
+from typing import Protocol, TextIO, TypedDict, cast
 
 import mcchess
 from mcchess.data.pgn_reader import iter_samples, new_counters
+from tqdm.auto import tqdm  # type: ignore[import-untyped]
 
 SCHEMA_VERSION = 1
 
@@ -32,6 +33,35 @@ class DatasetSample(TypedDict):
     split: str
 
 
+class _ProgressBar(Protocol):
+    n: int | float
+
+    def update(self, n: int | float = 1) -> object:
+        ...
+
+    def set_postfix(self, **kwargs: object) -> object:
+        ...
+
+    def close(self) -> None:
+        ...
+
+
+class _ProgressTextStream:
+    def __init__(self, stream: TextIO, progress: _ProgressBar, encoding: str) -> None:
+        self._stream = stream
+        self._progress = progress
+        self._encoding = encoding
+
+    def readline(self, size: int = -1) -> str:
+        line = self._stream.readline(size)
+        if line:
+            self._progress.update(len(line.encode(self._encoding, errors="replace")))
+        return line
+
+    def __getattr__(self, name: str) -> object:
+        return getattr(self._stream, name)
+
+
 def build_dataset(
     source: str | Path,
     output_dir: str | Path,
@@ -41,6 +71,7 @@ def build_dataset(
     split_ratios: tuple[float, float, float] = (0.9, 0.05, 0.05),
     split_seed: int = 0,
     filters: Mapping[str, object] | None = None,
+    show_progress: bool = False,
 ) -> Path:
     source = Path(source)
     output_dir = Path(output_dir)
@@ -63,6 +94,9 @@ def build_dataset(
     pos_per_split = {"train": 0, "val": 0, "test": 0}
     counters = new_counters()
 
+    progress: _ProgressBar | None = None
+    source_size = source.stat().st_size if show_progress else 0
+
     with (
         source.open(encoding="utf-8") as src,
         (output_dir / "train.jsonl").open("w", encoding="utf-8") as train_shard,
@@ -74,14 +108,51 @@ def build_dataset(
             "val": val_shard,
             "test": test_shard,
         }
-        for sample in iter_samples(src, counters):
-            gid = sample["game_id"]
-            if gid not in splits:
-                splits[gid] = pick_split()
-            split = splits[gid]
-            dataset_sample: DatasetSample = {**sample, "split": split}
-            shards[split].write(json.dumps(dataset_sample) + "\n")
-            pos_per_split[split] += 1
+        sample_stream: TextIO = src
+        if show_progress:
+            progress = tqdm(
+                total=source_size,
+                desc=f"processing {source.name}",
+                unit="B",
+                unit_scale=True,
+                dynamic_ncols=True,
+            )
+            sample_stream = cast(
+                TextIO,
+                _ProgressTextStream(src, progress, src.encoding or "utf-8"),
+            )
+
+        try:
+            samples_written = 0
+            completed = False
+            for sample in iter_samples(sample_stream, counters):
+                gid = sample["game_id"]
+                if gid not in splits:
+                    splits[gid] = pick_split()
+                split = splits[gid]
+                dataset_sample: DatasetSample = {**sample, "split": split}
+                shards[split].write(json.dumps(dataset_sample) + "\n")
+                pos_per_split[split] += 1
+                samples_written += 1
+
+                if progress is not None and (
+                    samples_written == 1 or samples_written % 1000 == 0
+                ):
+                    progress.set_postfix(
+                        games=counters["games_read"],
+                        used=counters["games_used"],
+                        skipped=(
+                            counters["games_skipped_corrupt"]
+                            + counters["games_skipped_unknown_result"]
+                        ),
+                        positions=counters["positions_emitted"],
+                    )
+            completed = True
+        finally:
+            if progress is not None:
+                if completed and progress.n < source_size:
+                    progress.update(source_size - progress.n)
+                progress.close()
 
     manifest = {
         "source": str(source),

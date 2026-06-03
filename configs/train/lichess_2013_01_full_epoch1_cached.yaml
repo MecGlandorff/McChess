@@ -1,0 +1,27 @@
+# First cached full-month supervised run.
+#
+# This uses tensor caches derived from the January 2013 train/validation JSONL
+# shards. It is a throughput experiment for reducing CPU data-prep overhead,
+# not a strength experiment. Build the caches first with scripts/build_tensor_cache.py.
+
+train_path: data/processed/lichess_2013_01_full/train.jsonl
+val_path: data/processed/lichess_2013_01_full/val.jsonl
+train_cache_dir: data/tensor_cache/lichess_2013_01_full/train
+val_cache_dir: data/tensor_cache/lichess_2013_01_full/val
+dataset_manifest_path: data/manifests/lichess_2013_01_full_manifest.json
+output_dir: runs/lichess_2013_01_full_epoch1_cached
+
+seed: 20260601
+device: cuda
+batch_size: 2048
+epochs: 1
+learning_rate: 0.0005
+weight_decay: 0.001
+value_weight: 1.0
+num_workers: 2
+log_every_steps: 100
+
+model:
+  channels: 32
+  num_blocks: 1
+  value_hidden_dim: 64

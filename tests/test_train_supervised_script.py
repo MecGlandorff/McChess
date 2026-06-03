@@ -47,6 +47,37 @@ def write_shard(path: Path, count: int) -> None:
     path.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
 
 
+def test_make_loader_can_pin_memory() -> None:
+    script = load_script_module()
+    dataset = torch.utils.data.TensorDataset(torch.zeros(2, 1))
+
+    loader = script.make_loader(
+        dataset,
+        batch_size=1,
+        shuffle=False,
+        seed=7,
+        num_workers=0,
+        pin_memory=True,
+    )
+
+    assert loader.pin_memory is True
+
+
+def test_make_dataset_uses_tensor_cache_when_configured(tmp_path: Path) -> None:
+    script = load_script_module()
+    shard = tmp_path / "train.jsonl"
+    cache_dir = tmp_path / "cache"
+    write_shard(shard, count=2)
+
+    from mcchess.data import build_supervised_tensor_cache
+
+    build_supervised_tensor_cache(shard, cache_dir, show_progress=False)
+
+    dataset = script.make_dataset(shard, cache_dir)
+
+    assert dataset.__class__.__name__ == "SupervisedTensorCacheDataset"
+
+
 def test_supervised_training_script_writes_artifacts(tmp_path: Path) -> None:
     script = load_script_module()
     train_path = tmp_path / "train.jsonl"

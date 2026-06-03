@@ -33,11 +33,17 @@ Which architecture gives the best policy/value quality under limited compute?
 Compare:
 
 - ResNet
+- NNUE-style sparse accumulator, if implemented
 - History ResNet
 - ResNet + square attention
 - LSTM history
 - LSTM + temporal attention
 - Temporal Transformer
+
+NNUE-style work is in scope only as a project-defined neural architecture
+trained from allowed McChess targets. Imported engine weights, engine
+evaluations, tablebase labels, and external best-move labels remain out of
+scope.
 
 ## Study 3 - Search
 

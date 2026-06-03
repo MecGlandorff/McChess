@@ -114,6 +114,22 @@ Expected outputs:
 The first local sample created from this guide should contain about 1,000 games
 and 61,000 supervised positions.
 
+## Build The Full January 2013 Dataset
+
+After decompressing the full PGN, the repository config can build the full
+month with terminal progress enabled:
+
+```bash
+poetry run python scripts/build_pgn_dataset.py configs/data/lichess_2013_01_full.yaml
+```
+
+Expected outputs:
+
+- `data/processed/lichess_2013_01_full/train.jsonl`
+- `data/processed/lichess_2013_01_full/val.jsonl`
+- `data/processed/lichess_2013_01_full/test.jsonl`
+- `data/manifests/lichess_2013_01_full_manifest.json`
+
 ## Smoke Check The Loader
 
 ```bash

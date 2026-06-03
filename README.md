@@ -63,6 +63,7 @@ PGN games
 ## Planned Model Families
 
 - ResNet
+- optional NNUE-style sparse accumulator
 - History ResNet
 - ResNet + square attention
 - LSTM history
@@ -128,6 +129,23 @@ Verify the interpreter:
 poetry run python --version
 ```
 
+## Data And Local Training Guides
+
+Useful local workflow guides:
+
+- `docs/guides/INSTALL_DATA.md`
+- `docs/guides/GPU_POWER_LIMIT.md`
+
+GPU power limiting for NVIDIA cards can be toggled around CUDA training runs:
+
+```powershell
+poetry run python gpu_protect --status
+poetry run python gpu_protect --on
+poetry run python gpu_protect --off
+```
+
+The limiter only matters when training resolves to `device=cuda`.
+
 Run checks through Poetry:
 
 ```bash
@@ -166,7 +184,7 @@ Reportable results should include configs, seeds, manifests, checkpoints, metric
 
 Development-only reports live in `reports/`. The first extended validation run
 shows that the current model, loader, loss, metrics, checkpoint, and plot path
-work end to end on the full local 1,000-game (ver small) Lichess sample, with validation
+work end to end on the full local 1,000-game very small Lichess sample, with validation
 loss improving before mild late overfitting. This run is very far from an actual training run. 
 
 ![Extended validation loss curve](reports/assets/validation_extended_loss_curve.svg)
@@ -181,4 +199,5 @@ This is not a strength result and is not a reportable experiment.
 
 ## Current Status
 
-Repository foundation, board encoding, move indexing, legal policy masking, and the PGN dataset builder are in place.
+Repository foundation, board encoding, move indexing, legal policy masking, the
+PGN dataset builder, and supervised training smoke configs are in place.

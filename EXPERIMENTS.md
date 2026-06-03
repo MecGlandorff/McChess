@@ -119,6 +119,7 @@ Which architecture gives the best quality under limited compute?
 Compare:
 
 - ResNet
+- NNUE-style sparse accumulator, if implemented
 - History ResNet
 - ResNet + square attention
 - LSTM history
@@ -131,6 +132,10 @@ Metrics:
 - value calibration
 - nodes/sec when used in MCTS
 - arena score under fixed MCTS budgets
+
+NNUE-style experiments must use project-defined features and allowed McChess
+targets only. Do not use imported Stockfish NNUE weights, engine evaluations,
+tablebase labels, or external best-move labels.
 
 ### Group 4 - MCTS Scaling
 
