@@ -18,8 +18,9 @@ import numpy as np
 import torch
 import yaml  # type: ignore[import-untyped]
 from torch.utils.data import DataLoader, Dataset, Subset
+from tqdm.auto import tqdm
 
-from mcchess.data import SupervisedChessDataset
+from mcchess.data import SupervisedChessDataset, SupervisedTensorCacheDataset
 from mcchess.model import PolicyValueResNet, ResNetConfig, policy_value_loss
 
 
@@ -28,6 +29,8 @@ class SupervisedTrainConfig:
     train_path: str
     output_dir: str
     val_path: str | None = None
+    train_cache_dir: str | None = None
+    val_cache_dir: str | None = None
     dataset_manifest_path: str | None = None
     seed: int = 0
     device: str = "auto"
@@ -116,6 +119,14 @@ def limited_dataset(dataset: Dataset, max_samples: int | None) -> Dataset:
     return Subset(dataset, range(max_samples))
 
 
+def make_dataset(path: str | Path, cache_dir: str | Path | None = None) -> Dataset:
+    """Create the supervised dataset, preferring a precomputed cache when set."""
+
+    if cache_dir is not None:
+        return SupervisedTensorCacheDataset(cache_dir)
+    return SupervisedChessDataset(path)
+
+
 def make_loader(
     dataset: Dataset,
     *,
@@ -123,6 +134,7 @@ def make_loader(
     shuffle: bool,
     seed: int,
     num_workers: int,
+    pin_memory: bool = False,
 ) -> DataLoader:
     generator = torch.Generator().manual_seed(seed)
     return DataLoader(
@@ -130,6 +142,8 @@ def make_loader(
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
+        pin_memory=pin_memory,
+        persistent_workers=num_workers > 0,
         generator=generator if shuffle else None,
     )
 
@@ -149,11 +163,18 @@ def train_one_epoch(
     policy_loss = 0.0
     value_loss = 0.0
     total_samples = 0
+    progress = tqdm(
+        loader,
+        desc=f"epoch {epoch:03d} train",
+        dynamic_ncols=True,
+        unit="batch",
+    )
 
-    for step, batch in enumerate(loader, start=1):
-        board = batch["board"].to(device)
-        policy_index = batch["policy_index"].to(device)
-        value_target = batch["value"].to(device)
+    non_blocking = device.type == "cuda"
+    for step, batch in enumerate(progress, start=1):
+        board = batch["board"].to(device=device, dtype=torch.float32, non_blocking=non_blocking)
+        policy_index = batch["policy_index"].to(device, non_blocking=non_blocking)
+        value_target = batch["value"].to(device, non_blocking=non_blocking)
 
         optimizer.zero_grad(set_to_none=True)
         policy_logits, value = model(board)
@@ -173,12 +194,11 @@ def train_one_epoch(
         policy_loss += losses.policy.item() * batch_size
         value_loss += losses.value.item() * batch_size
 
-        if log_every_steps and step % log_every_steps == 0:
-            print(
-                f"epoch {epoch:03d} step {step:04d} "
-                f"train_total={losses.total.item():.4f} "
-                f"policy={losses.policy.item():.4f} value={losses.value.item():.4f}",
-                flush=True,
+        if log_every_steps == 0 or step % log_every_steps == 0 or step == len(loader):
+            progress.set_postfix(
+                total=f"{losses.total.item():.4f}",
+                policy=f"{losses.policy.item():.4f}",
+                value=f"{losses.value.item():.4f}",
             )
 
     return (
@@ -200,11 +220,18 @@ def evaluate(
     policy_loss = 0.0
     value_loss = 0.0
     total_samples = 0
+    progress = tqdm(
+        loader,
+        desc="validation",
+        dynamic_ncols=True,
+        unit="batch",
+    )
 
-    for batch in loader:
-        board = batch["board"].to(device)
-        policy_index = batch["policy_index"].to(device)
-        value_target = batch["value"].to(device)
+    non_blocking = device.type == "cuda"
+    for batch in progress:
+        board = batch["board"].to(device=device, dtype=torch.float32, non_blocking=non_blocking)
+        policy_index = batch["policy_index"].to(device, non_blocking=non_blocking)
+        value_target = batch["value"].to(device, non_blocking=non_blocking)
         policy_logits, value = model(board)
         losses = policy_value_loss(
             policy_logits,
@@ -219,6 +246,11 @@ def evaluate(
         total_loss += losses.total.item() * batch_size
         policy_loss += losses.policy.item() * batch_size
         value_loss += losses.value.item() * batch_size
+        progress.set_postfix(
+            total=f"{losses.total.item():.4f}",
+            policy=f"{losses.policy.item():.4f}",
+            value=f"{losses.value.item():.4f}",
+        )
 
     return (
         total_loss / total_samples,
@@ -340,11 +372,14 @@ def run_training(config_path: str | Path) -> Path:
     shutil.copyfile(config_path, output_dir / "config.yaml")
 
     train_dataset = limited_dataset(
-        SupervisedChessDataset(config.train_path),
+        make_dataset(config.train_path, config.train_cache_dir),
         config.max_train_samples,
     )
     val_dataset = (
-        limited_dataset(SupervisedChessDataset(config.val_path), config.max_val_samples)
+        limited_dataset(
+            make_dataset(config.val_path, config.val_cache_dir),
+            config.max_val_samples,
+        )
         if config.val_path
         else None
     )
@@ -355,6 +390,7 @@ def run_training(config_path: str | Path) -> Path:
         shuffle=True,
         seed=config.seed,
         num_workers=config.num_workers,
+        pin_memory=device.type == "cuda",
     )
     val_loader = (
         make_loader(
@@ -363,6 +399,7 @@ def run_training(config_path: str | Path) -> Path:
             shuffle=False,
             seed=config.seed,
             num_workers=config.num_workers,
+            pin_memory=device.type == "cuda",
         )
         if val_dataset is not None
         else None
@@ -377,7 +414,7 @@ def run_training(config_path: str | Path) -> Path:
     )
 
     status_path = output_dir / "status.json"
-    started_at = dt.datetime.now(dt.UTC).isoformat()
+    started_at = dt.datetime.now(dt.timezone.utc).isoformat()
     train_sample_count = len(cast(Sized, train_dataset))
     val_sample_count = len(cast(Sized, val_dataset)) if val_dataset is not None else 0
     status: dict[str, Any] = {
@@ -389,8 +426,11 @@ def run_training(config_path: str | Path) -> Path:
         "checkpoint_path": str(output_dir / "checkpoint.pt"),
         "loss_plot_path": str(output_dir / "loss.svg"),
         "dataset_manifest_path": config.dataset_manifest_path,
+        "train_cache_dir": config.train_cache_dir,
+        "val_cache_dir": config.val_cache_dir,
         "seed": config.seed,
         "device": str(device),
+        "pin_memory": device.type == "cuda",
         "train_samples": train_sample_count,
         "val_samples": val_sample_count,
     }
@@ -457,7 +497,7 @@ def run_training(config_path: str | Path) -> Path:
             )
 
         write_loss_svg(epoch_metrics, output_dir / "loss.svg")
-        completed_at = dt.datetime.now(dt.UTC).isoformat()
+        completed_at = dt.datetime.now(dt.timezone.utc).isoformat()
         checkpoint = {
             "model_state_dict": model.state_dict(),
             "model_config": asdict(model_config),
@@ -477,7 +517,7 @@ def run_training(config_path: str | Path) -> Path:
         return output_dir
     except Exception:
         status["status"] = "failed"
-        status["completed_at"] = dt.datetime.now(dt.UTC).isoformat()
+        status["completed_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
         status["elapsed_seconds"] = time.perf_counter() - run_start
         status_path.write_text(
             json.dumps(status, indent=2, sort_keys=True) + "\n",

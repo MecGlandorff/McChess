@@ -11,6 +11,7 @@ Compact neural chess policy/value model.
 Potential architectures:
 
 - ResNet
+- NNUE-style sparse accumulator, if implemented
 - History ResNet
 - ResNet + square attention
 - LSTM history
@@ -19,7 +20,7 @@ Potential architectures:
 
 ## Intended Use
 
-This model is intended for research and portfolio demonstration.
+This model is intended for research.
 
 It is designed to study:
 
@@ -32,6 +33,7 @@ It is designed to study:
 - temporal modeling
 - search distillation
 - optional self-play
+- optional NNUE-style sparse architecture exploration
 
 ## Not Intended For
 
@@ -56,6 +58,7 @@ Disallowed training data:
 - Syzygy tablebase labels
 - external engine evaluations
 - external best-move recommendations
+- imported Stockfish NNUE weights or pretrained chess-engine networks
 
 ## Training Objective
 
@@ -68,6 +71,7 @@ Optional later objectives:
 
 - MCTS visit-count distillation
 - self-play policy/value targets
+- NNUE-style policy/value architecture trained only from allowed McChess targets
 
 ## Inputs
 

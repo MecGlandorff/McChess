@@ -18,3 +18,6 @@ Current development configs:
   a longer run.
 - `lichess_2013_01_full_epoch1.yaml`: first uncapped pass over the full January
   2013 train/validation shards for throughput and data-path validation.
+- `lichess_2013_01_full_epoch1_cached.yaml`: CUDA throughput variant of the
+  full-month run that reads precomputed tensor caches. This is a derived-artifact
+  compute path documented in `adr/0001-tensor-cache-for-cuda-training-throughput.md`.

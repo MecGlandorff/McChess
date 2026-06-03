@@ -230,6 +230,23 @@ Ablations:
 - LSTM + temporal attention
 - Temporal Transformer
 
+Future optional:
+
+- NNUE-style sparse accumulator. If added, this is a McChess-defined neural
+  architecture, not imported Stockfish NNUE. It must be trained only from
+  allowed project targets, keep explicit legal move masking, and preserve the
+  model output contract:
+
+```text
+policy_logits: [batch, 4672]
+value: [batch]
+```
+
+An NNUE-style implementation would need a documented sparse feature schema and
+tests showing that any incremental accumulator state matches full feature
+recomputation. A value-only NNUE scorer would be a separate experimental bot
+type and must not silently replace the policy/value model contract.
+
 ## MCTS
 
 Use PUCT-style selection:
@@ -280,6 +297,12 @@ filters, `created_at`, `code_version`, and a `schema_version` integer.
 The dataset builder does not encode board tensors to disk; downstream
 training code is expected to decode the FEN and call `encode_board`. This
 keeps shards portable and decoupled from any encoder revisions.
+
+For throughput-sensitive local CUDA runs, a JSONL shard may be converted into
+an optional tensor cache documented in `docs/DATASET_PROTOCOL.md`. The JSONL
+shard remains the source of truth; the cache stores encoded `uint8` board planes
+and policy/value targets so training can avoid per-sample FEN parsing in the
+hot path.
 
 ## Evaluation
 

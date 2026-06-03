@@ -422,3 +422,32 @@ Acceptance criteria:
 - before/after evaluation uses the same arena config
 - regressions against baselines are recorded, not hidden
 - no external engine labels are introduced
+
+## Task 14 - Optional NNUE-Style Architecture Study
+
+Add a McChess-defined NNUE-style sparse accumulator architecture.
+
+Requirements:
+
+- Define the sparse feature schema in docs before coding.
+- Do not import Stockfish NNUE weights.
+- Do not use engine evaluations, tablebase labels, or external best-move labels.
+- Keep legal move masking external and mandatory.
+- Preserve the default policy/value output contract:
+  - `policy_logits: [batch, 4672]`
+  - `value: [batch]`
+- If an incremental accumulator is implemented, test it against full
+  recomputation.
+- Add parameter count and inference speed reporting.
+- Compare against the supervised ResNet under matched dataset, seed, and
+  training budget.
+
+Run `poetry run pytest`.
+
+Acceptance criteria:
+
+- feature encoding tests pass
+- accumulator update tests pass, if incremental updates are implemented
+- shape, finite-output, and backward tests pass
+- architecture docs describe inputs, outputs, and limitations
+- no external engine labels, weights, or tablebase labels are introduced

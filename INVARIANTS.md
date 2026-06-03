@@ -65,6 +65,11 @@ value: [batch]
 
 Outputs must be finite for normal inputs.
 
+Future NNUE-style architectures are subject to the same output contract unless
+they are explicitly documented as a separate value-only experimental bot. They
+must not use imported engine weights, engine evaluations, tablebase labels, or
+external best-move labels.
+
 ## MCTS
 
 - MCTS may expand legal moves only.
@@ -78,6 +83,10 @@ Outputs must be finite for normal inputs.
 - Split by game, not by position.
 - Positions from one game must not appear in multiple splits.
 - Dataset manifests must include source description, filters, counts, split sizes, and code version if available.
+- Optional tensor caches are derived artifacts. They must be rebuildable from
+  JSONL shards and must record schema version, sample count, tensor shape, and
+  dtypes. A board encoding shape or plane semantics change invalidates existing
+  tensor caches.
 
 ## Evaluation
 

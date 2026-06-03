@@ -119,6 +119,47 @@ value: scalar float32
 The loader does not store encoded tensors on disk. FEN remains the serialized
 dataset source of truth.
 
+## Optional Tensor Cache
+
+For larger CUDA runs, JSONL shards may be converted into a local tensor cache
+with:
+
+```powershell
+poetry run python scripts\build_tensor_cache.py data/processed/name/train.jsonl data/tensor_cache/name/train
+```
+
+The cache is an acceleration artifact, not a replacement source of truth. It
+must be rebuildable from the JSONL shard and current encoder implementation.
+
+Cache files:
+
+```text
+boards.npy          uint8   [num_samples, 18, 8, 8]
+policy_indices.npy  int64   [num_samples]
+values.npy          float32 [num_samples]
+manifest.json
+```
+
+Boards are stored as `uint8` because the current 18 documented planes are
+binary. Training casts cached boards to `float32` on the selected device before
+model inference. If board planes ever become non-binary, this cache format must
+be revised with a new schema version.
+
+Training configs may set:
+
+```yaml
+train_cache_dir: data/tensor_cache/name/train
+val_cache_dir: data/tensor_cache/name/val
+```
+
+When cache directories are configured, training reads cached tensors instead of
+decoding FENs in the hot path.
+
+Cache builders must write array files through temporary paths and write
+`manifest.json` last, after all arrays are complete. Cache readers must reject
+missing files, unsupported schema versions, and unexpected shapes or dtypes
+before using cached tensors.
+
 ## Manifest
 
 Every processed dataset should save a manifest:

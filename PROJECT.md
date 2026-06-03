@@ -31,6 +31,8 @@ This project is not trying to:
 4. Temporal context may improve policy prediction and value calibration.
 5. Attention may improve global board reasoning or temporal recall.
 6. Search distillation may improve the policy without engine labels.
+7. A compact NNUE-style sparse accumulator may offer a useful speed/quality
+   tradeoff if trained only from allowed McChess targets.
 
 ## Allowed Supervision
 
@@ -60,6 +62,7 @@ Not allowed:
 - MCTS
 - arena evaluation
 - optional temporal models
+- optional NNUE-style sparse accumulator models
 - optional search distillation
 - optional self-play
 

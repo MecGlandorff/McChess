@@ -23,6 +23,7 @@ dist/
 data/raw/*
 data/processed/*
 data/manifests/*
+data/tensor_cache/
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/manifests/.gitkeep

@@ -61,6 +61,7 @@ For arena results, also include:
 | Architecture | Params | History | Attention | Top-1 | Value MSE | Arena Score | Speed |
 |---|---:|---|---|---:|---:|---:|---:|
 | ResNet | TBD | No | No | TBD | TBD | TBD | TBD |
+| NNUE-style sparse accumulator | TBD | No | No | TBD | TBD | TBD | TBD |
 | History ResNet | TBD | Yes | No | TBD | TBD | TBD | TBD |
 | ResNet + Square Attention | TBD | No | Yes | TBD | TBD | TBD | TBD |
 | LSTM History | TBD | Yes | No | TBD | TBD | TBD | TBD |
