@@ -2,6 +2,48 @@
 
 A compact neural chess research system trained without Stockfish, Syzygy, or external engine labels.
 
+McChess is an implemented supervised-learning research scaffold for neural chess, with explicit chess-rule contracts, data processing, a compact policy/value model, training utilities, reproducible configs, tests, and development smoke reports. MCTS, arena evaluation, temporal/attention models, search distillation, and self-play are future milestones unless explicitly marked otherwise.
+
+## Current Status
+
+Implemented:
+
+- repository foundation, Poetry environment, CI, and project documentation
+- 18-plane board tensor encoder backed by `python-chess`
+- fixed 4672-action policy space with move-index round trips
+- explicit legal move masking using `python-chess`
+- PGN reader with corrupt-game and unknown-result accounting
+- game-level dataset builder with JSONL shards and manifests
+- optional tensor cache for faster local training input pipelines
+- PyTorch dataset support for JSONL shards and tensor caches
+- compact ResNet policy/value model with supervised loss
+- supervised training script with metrics, checkpoints, and plots
+- local data, training, and smoke-test configs
+- tests for chess/tensor contracts, data processing, model shapes, losses, and scripts
+
+Not yet implemented:
+
+- handmade baseline bots
+- arena evaluation
+- neural MCTS
+- temporal and attention model families
+- search distillation
+- self-play
+
+## Current Capabilities
+
+| Area | Implemented capability |
+|---|---|
+| Board representation | 18-plane `[planes, 8, 8]` encoder with side-to-move, castling, and legal en-passant metadata |
+| Move representation | Fixed `8 x 8 x 73 = 4672` policy space with legal move round-trip tests |
+| Legality | Explicit `python-chess` legal policy mask; the model is not trusted to infer legal moves |
+| Data pipeline | PGN streaming, final-result value targets, game-level splits, JSONL shards, dataset manifests |
+| Training input | JSONL-backed dataset plus optional encoded tensor cache for local throughput |
+| Model | Compact PyTorch ResNet returning `policy_logits: [batch, 4672]` and `value: [batch]` |
+| Training | Config-driven supervised training script with metrics, checkpoints, and diagnostic plots |
+| Reproducibility | YAML configs, dataset protocols, evaluation protocols, model card, invariants, and CI checks |
+| Validation | pytest coverage for board encoding, move indexing, legal masks, PGN handling, datasets, model outputs, losses, and scripts |
+
 ## Project Goal
 
 McChess studies how far a small neural chess agent can go using:
@@ -22,17 +64,17 @@ The goal is not to beat modern engines. The goal is to build a clean, reproducib
 
 How far can a compact neural chess engine go using only human games, architectural inductive biases, search, and self-play without engine supervision?
 
-## What This Project Demonstrates
+## Research And Engineering Scope
 
 - deep learning fundamentals
 - chess board representation
 - move-indexing design
 - legal move masking
 - policy/value modeling
-- MCTS
-- sequence modeling
-- attention mechanisms
-- ablation studies
+- MCTS experiments
+- sequence-modeling experiments
+- attention-mechanism experiments
+- controlled ablation studies
 - reproducible evaluation
 - careful research engineering
 
@@ -48,21 +90,26 @@ This project does not use:
 
 This project does not claim high Elo unless measured with a credible protocol.
 
-## Planned System
+## System Overview
 
 ```text
 PGN games
-  -> dataset builder
-  -> board tensors, policy targets, value targets
-  -> policy/value model
-  -> policy-only bot
-  -> MCTS-enhanced bot
-  -> arena evaluation
+  -> dataset builder                         implemented
+  -> board tensors, policy targets, values   implemented
+  -> policy/value ResNet                     implemented
+  -> policy-only bot                         future
+  -> MCTS-enhanced bot                       future
+  -> arena evaluation                        future
 ```
 
-## Planned Model Families
+## Model Families
 
-- ResNet
+Implemented:
+
+- ResNet policy/value model
+
+Planned ablations:
+
 - optional NNUE-style sparse accumulator
 - History ResNet
 - ResNet + square attention
@@ -70,13 +117,28 @@ PGN games
 - LSTM + temporal attention
 - Temporal Transformer
 
-## Planned Baselines
+## Future Evaluation Baselines
 
 - random legal-move bot
 - material-count bot
 - shallow minimax bot
 - policy-only neural bot
 - policy/value + MCTS bot
+
+## Repository Map
+
+- `src/mcchess/board/`: board tensors, move indexing, and legal masks
+- `src/mcchess/data/`: PGN parsing, dataset shards, tensor caches, and PyTorch datasets
+- `src/mcchess/model/`: policy/value ResNet and supervised losses
+- `scripts/`: dataset building, tensor-cache building, data download, and supervised training
+- `configs/`: reproducible data and training configurations
+- `tests/`: chess-rule, data, model-shape, loss, and script tests
+- `docs/`: architecture notes, coding standard, dataset protocol, and evaluation protocol
+- `reports/`: development smoke reports and diagnostic plots
+
+## Validation Snapshot
+
+The test suite covers board orientation, piece planes, castling metadata, legal en-passant encoding, move-index round trips, legal policy masks, PGN parsing, corrupt and unknown-result game handling, game-level dataset splits, tensor cache loading, model output shapes, finite outputs, supervised loss computation, and training-script smoke behavior.
 
 ## Development Philosophy
 
@@ -196,8 +258,3 @@ loss improving before mild late overfitting. This run is very far from an actual
 - runtime: `357.7s` total on MPS
 
 This is not a strength result and is not a reportable experiment.
-
-## Current Status
-
-Repository foundation, board encoding, move indexing, legal policy masking, the
-PGN dataset builder, and supervised training smoke configs are in place.
