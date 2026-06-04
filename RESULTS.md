@@ -6,7 +6,14 @@ Do not put aspirational claims here. Only report results that were actually run.
 
 ## Current Status
 
-No reportable experiments yet.
+One reportable supervised baseline run exists:
+
+- `supervised_resnet32x2_lichess2013_01`: a compact ResNet trained on a
+  600k-position prefix of the Lichess 2013-01 training shard and evaluated on a
+  40k-position held-out test slice.
+
+No arena, MCTS, search-distillation, self-play, or matched architecture-ablation
+results have been run yet.
 
 ## Reporting Standards
 
@@ -17,7 +24,7 @@ Each result should include:
 - training config
 - evaluation config
 - random seed
-- number of games
+- number of games, if applicable
 - MCTS budget, if applicable
 - hardware notes, if available
 - date run
@@ -27,7 +34,8 @@ Each result should include:
 - git commit if available
 - run status
 
-Do not copy a result into the tables below unless the underlying experiment entry has enough metadata to reproduce it.
+Do not copy a result into the tables below unless the underlying experiment entry
+has enough metadata to reproduce it.
 
 For arena results, also include:
 
@@ -40,11 +48,63 @@ For arena results, also include:
 
 ## Supervised Learning Results
 
-| Experiment | Model | Dataset | Top-1 | Top-3 | Top-5 | Value MSE |
-|---|---|---|---:|---:|---:|---:|
-| TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Experiment | Model | Train Data | Eval Data | Top-1 | Top-3 | Top-5 | Value MSE |
+|---|---|---|---|---:|---:|---:|---:|
+| `supervised_resnet32x2_lichess2013_01` | ResNet 32ch x2 (~1.2M params) | Lichess 2013-01, 600k-position train prefix | 40k held-out test positions | 0.262 | 0.492 | 0.610 | 0.858 |
+
+### `supervised_resnet32x2_lichess2013_01`
+
+- status: completed
+- question: Can a compact policy/value ResNet learn to predict human moves from
+  raw Lichess PGN using only human moves and final game results?
+- dataset: Lichess standard rated 2013-01, human moves and final results only
+- dataset_manifest: `data/manifests/lichess_2013_01_full_manifest.json`
+  (121,332 games, 8,155,187 positions, split by game)
+- dataset splits: 7,996,459 train positions, 81,638 validation positions, and
+  77,090 test positions
+- source_checksum:
+  `8963b6a1620a0e9c77e5515a0744ec133e86869487188af047bb0a74400dee37`
+- train subset: first 600,000 positions from the train shard, using the
+  game-ordered shard prefix
+- model_config: `input_planes=18, channels=32, num_blocks=2, policy_size=4672, value_hidden_dim=64`
+- train_config: `batch_size=256, epochs=4, optimizer=AdamW, lr=8e-4, weight_decay=1e-3, value_weight=1.0`
+- eval_config: held-out test shard, first 40,000 positions, legal-masked top-k
+  via `scripts/eval_top1.py`; top-k metrics are computed over legal moves only
+- seed: 20260601
+- git_commit: `f4674bb`
+- checkpoint_path: `runs/real_2013_01/checkpoint.pt`
+- metrics_path: `runs/real_2013_01/metrics.jsonl`
+- results_path: `RESULTS.md`
+- hardware: AMD CPU (AMD64 Family 25), PyTorch 2.12.0+cpu, Python 3.11.5;
+  approximately 19 minutes wall-clock time
+- date_run: 2026-06-04
+
+| Metric | Value |
+|---|---:|
+| policy top-1, legal-masked | 0.262 |
+| policy top-1, raw unmasked | 0.231 |
+| policy top-3, legal-masked | 0.492 |
+| policy top-5, legal-masked | 0.610 |
+| raw argmax is a legal move | 0.888 |
+| value MSE, test slice | 0.858 |
+| final validation policy CE | 3.113 |
+| final validation value MSE | 0.911 |
+
+Notes:
+
+- A uniform policy over 4,672 move indices has cross-entropy of about 8.45. This
+  run reached final validation policy CE of 3.113 and legal-masked top-1 of
+  0.262 on held-out games.
+- The raw unmasked argmax was legal for 88.8% of evaluated positions. This
+  suggests the model learned some board-structure regularities, but production
+  move selection must still use explicit legal masking.
+- This is a deliberately small CPU baseline: 600k of 7,996,459 available
+  training positions, 4 epochs, one seed. It is a baseline to improve, not a
+  playing strength claim.
 
 ## Arena Results
+
+No arena evaluations have been run yet.
 
 | Experiment | Agent | Opponent | Games | Wins | Draws | Losses | Score |
 |---|---|---|---:|---:|---:|---:|---:|
@@ -52,15 +112,21 @@ For arena results, also include:
 
 ## MCTS Scaling Results
 
+No MCTS scaling evaluations have been run yet.
+
 | Model | Budget | Games | Score | Nodes/sec | Notes |
 |---|---:|---:|---:|---:|---|
 | TBD | TBD | TBD | TBD | TBD | TBD |
 
 ## Architecture Ablation Results
 
+The ResNet row records the supervised baseline above for reference. It is not a
+matched architecture ablation because the other architectures have not been run
+under the same dataset, seed, and training budget.
+
 | Architecture | Params | History | Attention | Top-1 | Value MSE | Arena Score | Speed |
 |---|---:|---|---|---:|---:|---:|---:|
-| ResNet | TBD | No | No | TBD | TBD | TBD | TBD |
+| ResNet | ~1.2M | No | No | 0.262 | 0.858 | TBD | TBD |
 | NNUE-style sparse accumulator | TBD | No | No | TBD | TBD | TBD | TBD |
 | History ResNet | TBD | Yes | No | TBD | TBD | TBD | TBD |
 | ResNet + Square Attention | TBD | No | Yes | TBD | TBD | TBD | TBD |
@@ -70,16 +136,30 @@ For arena results, also include:
 
 ## Failure Analysis
 
-Track examples where models fail:
+No per-category failure analysis has been run yet.
+
+Future analysis should track examples such as:
 
 - hanging pieces
 - missed mate in one
 - unsafe captures
 - poor king safety
 - endgame conversion failures
-- repetition/draw handling
+- repetition or draw-handling mistakes
 - tactical horizon problems
+
+The gap between top-1 of 0.262 and top-5 of 0.610 suggests a useful next check:
+inspect positions where the human move is in the short list but not ranked first.
 
 ## Limitations
 
-Current limitations should be recorded honestly here.
+- Only one supervised run exists so far.
+- The run used 600k of 7,996,459 available training positions for 4 epochs on
+  CPU. It is not converged, tuned, or full-data.
+- The value head is weak: test MSE is 0.858, compared with about 1.0 for a
+  predict-zero baseline.
+- The evaluation used a 40k-position slice of the test shard, not the full test
+  set.
+- No top-k confidence interval or multi-seed variance is reported.
+- No arena, MCTS, self-play, search-distillation, or matched architecture
+  ablation result has been measured yet.
