@@ -1,7 +1,7 @@
 """Data loading, PGN parsing, and dataset-building utilities."""
 
 from mcchess.data.dataset_builder import build_dataset
-from mcchess.data.pgn_reader import iter_samples, new_counters
+from mcchess.data.pgn_reader import game_passes_filters, iter_samples, new_counters
 from mcchess.data.torch_dataset import (
     SupervisedChessDataset,
     SupervisedTensorSample,
@@ -21,6 +21,7 @@ __all__ = [
     "build_supervised_tensor_cache",
     "build_dataset",
     "count_jsonl_samples",
+    "game_passes_filters",
     "iter_samples",
     "iter_jsonl_samples",
     "new_counters",

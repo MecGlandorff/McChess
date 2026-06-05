@@ -83,10 +83,17 @@ external best-move labels.
 - Split by game, not by position.
 - Positions from one game must not appear in multiple splits.
 - Dataset manifests must include source description, filters, counts, split sizes, and code version if available.
+- Executable PGN filters must record skipped-by-filter game counts separately
+  from corrupt and unknown-result skips.
+- Header-only prefilters may reduce large PGN archives by metadata, but they
+  must not replace full legal-move validation in the dataset builder.
 - Optional tensor caches are derived artifacts. They must be rebuildable from
   JSONL shards and must record schema version, sample count, tensor shape, and
   dtypes. A board encoding shape or plane semantics change invalidates existing
   tensor caches.
+- Tensor cache readers must require `manifest.json` as the completed-cache
+  marker. In-progress `*.tmp` arrays and `progress.json` may be used only by
+  cache builders to resume interrupted builds.
 
 ## Evaluation
 

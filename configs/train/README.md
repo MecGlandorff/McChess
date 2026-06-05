@@ -21,3 +21,7 @@ Current development configs:
 - `lichess_2013_01_full_epoch1_cached.yaml`: CUDA throughput variant of the
   full-month run that reads precomputed tensor caches. This is a derived-artifact
   compute path documented in `adr/0001-tensor-cache-for-cuda-training-throughput.md`.
+- `lichess_2026_03_05_2000plus_epoch10_cached.yaml`: cached 10-epoch run over
+  the recent March-May 2026 Lichess 2000+ filtered dataset.
+- `lichess_2026_05_2000plus_epoch10_cached.yaml`: cached 10-epoch run over the
+  May 2026 Lichess 2000+ filtered dataset.

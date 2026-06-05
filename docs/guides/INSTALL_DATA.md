@@ -156,3 +156,58 @@ Expected tensor shape:
 Raw data, processed data, manifests, and checkpoints are local artifacts and are
 ignored by git. Keep the commands and manifests for reproducibility; do not
 commit large dataset files.
+
+## Recent 2000+ Dataset
+
+As of 2026-06-04, the Lichess standard database index lists March, April, and
+May 2026 standard rated archives. These are large files; avoid decompressing
+the unfiltered monthly PGNs to disk unless you have hundreds of GB free. The
+current large local target is May 2026 only, filtered to rated games where both
+players are 2000+.
+
+Download May 2026:
+
+```powershell
+poetry run python scripts\download_lichess.py --start-month 2026-05 --end-month 2026-05 `
+  --output-dir data/raw/lichess `
+  --manifest data/manifests/lichess_downloads.jsonl
+```
+
+Build one filtered PGN containing games where both players are rated 2000+:
+
+```powershell
+poetry run python scripts\filter_pgn.py `
+  data\raw\lichess\lichess_db_standard_rated_2026-05.pgn.zst `
+  --output data\raw\lichess\lichess_2026_05_2000plus.filtered.pgn `
+  --manifest data\manifests\lichess_2026_05_2000plus_filter_manifest.json `
+  --min-elo 2000 `
+  --min-elo-mode both `
+  --require-rated
+```
+
+`filter_pgn.py` filters from PGN headers only and preserves matching game text.
+The later dataset build is still responsible for full PGN parsing, legal move
+validation, and corrupt-game skips. For a capped first pass, add for example:
+
+```powershell
+  --max-kept-games 1000000
+```
+
+Build the supervised JSONL shards:
+
+```powershell
+poetry run python scripts\build_pgn_dataset.py configs\data\lichess_2026_05_2000plus.yaml
+```
+
+Build tensor caches for CUDA training:
+
+```powershell
+poetry run python scripts\build_tensor_cache.py data\processed\lichess_2026_05_2000plus\train.jsonl data\tensor_cache\lichess_2026_05_2000plus\train
+poetry run python scripts\build_tensor_cache.py data\processed\lichess_2026_05_2000plus\val.jsonl data\tensor_cache\lichess_2026_05_2000plus\val
+```
+
+Run cached training:
+
+```powershell
+poetry run python scripts\train_supervised.py configs\train\lichess_2026_05_2000plus_epoch10_cached.yaml
+```

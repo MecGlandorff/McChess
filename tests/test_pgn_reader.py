@@ -4,7 +4,7 @@ import textwrap
 import chess
 
 from mcchess.board import move_to_index
-from mcchess.data import iter_samples, new_counters
+from mcchess.data import game_passes_filters, iter_samples, new_counters
 
 
 SCHOLARS_MATE = textwrap.dedent("""\
@@ -35,10 +35,34 @@ CORRUPT = textwrap.dedent("""\
     1. Ke2 e5 1-0
     """)
 
+RATED_2000 = textwrap.dedent("""\
+    [Event "Rated Blitz game"]
+    [WhiteElo "2100"]
+    [BlackElo "2050"]
+    [Result "1-0"]
+
+    1. e4 e5 1-0
+    """)
+
+RATED_1900 = textwrap.dedent("""\
+    [Event "Rated Blitz game"]
+    [WhiteElo "2100"]
+    [BlackElo "1900"]
+    [Result "1-0"]
+
+    1. e4 e5 1-0
+    """)
+
 
 def read(pgn):
     counters = new_counters()
     samples = list(iter_samples(io.StringIO(pgn), counters))
+    return samples, counters
+
+
+def read_filtered(pgn, filters):
+    counters = new_counters()
+    samples = list(iter_samples(io.StringIO(pgn), counters, filters=filters))
     return samples, counters
 
 
@@ -90,3 +114,24 @@ def test_policy_index_and_fen_match_move_to_index():
         assert s["fen"] == board.fen()
         assert s["policy_index"] == move_to_index(board, chess.Move.from_uci(s["move_uci"]))
         board.push_uci(s["move_uci"])
+
+
+def test_min_elo_filter_requires_both_players_by_default():
+    samples, c = read_filtered(RATED_2000 + "\n" + RATED_1900, {"min_elo": 2000})
+
+    assert c["games_read"] == 2
+    assert c["games_used"] == 1
+    assert c["games_skipped_filter"] == 1
+    assert len(samples) == 2
+
+
+def test_game_passes_filters_supports_either_player_mode():
+    headers = {"Event": "Rated Blitz game", "WhiteElo": "2100", "BlackElo": "1900"}
+
+    assert game_passes_filters(headers, {"min_elo": 2000, "min_elo_mode": "either"})
+    assert not game_passes_filters(headers, {"min_elo": 2000, "min_elo_mode": "both"})
+
+
+def test_require_rated_filter_uses_event_header():
+    assert game_passes_filters({"Event": "Rated Blitz game"}, {"require_rated": True})
+    assert not game_passes_filters({"Event": "Casual Blitz game"}, {"require_rated": True})

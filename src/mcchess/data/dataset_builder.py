@@ -125,7 +125,7 @@ def build_dataset(
         try:
             samples_written = 0
             completed = False
-            for sample in iter_samples(sample_stream, counters):
+            for sample in iter_samples(sample_stream, counters, filters=filters):
                 gid = sample["game_id"]
                 if gid not in splits:
                     splits[gid] = pick_split()
@@ -144,6 +144,7 @@ def build_dataset(
                         skipped=(
                             counters["games_skipped_corrupt"]
                             + counters["games_skipped_unknown_result"]
+                            + counters["games_skipped_filter"]
                         ),
                         positions=counters["positions_emitted"],
                     )
@@ -163,9 +164,11 @@ def build_dataset(
         "num_games_skipped": (
             counters["games_skipped_corrupt"]
             + counters["games_skipped_unknown_result"]
+            + counters["games_skipped_filter"]
         ),
         "num_games_skipped_corrupt": counters["games_skipped_corrupt"],
         "num_games_skipped_unknown_result": counters["games_skipped_unknown_result"],
+        "num_games_skipped_filter": counters["games_skipped_filter"],
         "num_duplicate_games": 0,
         "num_positions": counters["positions_emitted"],
         "filters": filters or {},
