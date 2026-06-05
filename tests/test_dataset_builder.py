@@ -44,7 +44,7 @@ def test_writes_shards_and_manifest(tmp_path):
         "source", "source_description", "source_checksum",
         "num_games_raw", "num_games_used", "num_games_skipped",
         "num_games_skipped_corrupt", "num_games_skipped_unknown_result",
-        "num_duplicate_games", "num_positions",
+        "num_games_skipped_filter", "num_duplicate_games", "num_positions",
         "filters", "split", "split_seed",
         "created_at", "code_version", "schema_version",
     }
@@ -54,6 +54,7 @@ def test_writes_shards_and_manifest(tmp_path):
     assert m["num_games_skipped"] == 0
     assert m["num_games_skipped_corrupt"] == 0
     assert m["num_games_skipped_unknown_result"] == 0
+    assert m["num_games_skipped_filter"] == 0
     assert m["split_seed"] == 0
     assert m["split"]["ratios"] == [0.6, 0.2, 0.2]
 
@@ -131,3 +132,39 @@ def test_corrupt_and_unknown_are_counted(tmp_path):
     assert m["num_games_skipped"] == 2
     assert m["num_games_skipped_corrupt"] == 1
     assert m["num_games_skipped_unknown_result"] == 1
+
+
+def test_rating_filter_is_applied_and_counted(tmp_path):
+    accepted = textwrap.dedent("""\
+        [Event "Rated Blitz game"]
+        [WhiteElo "2100"]
+        [BlackElo "2050"]
+        [Result "1-0"]
+
+        1. e4 e5 1-0
+        """)
+    rejected = textwrap.dedent("""\
+        [Event "Rated Blitz game"]
+        [WhiteElo "2100"]
+        [BlackElo "1900"]
+        [Result "1-0"]
+
+        1. e4 e5 1-0
+        """)
+    (tmp_path / "raw.pgn").write_text("\n".join([accepted, rejected]))
+    out = tmp_path / "processed" / "ds"
+    manifest_path = tmp_path / "manifests" / "ds.json"
+    build_dataset(
+        tmp_path / "raw.pgn",
+        out,
+        manifest_path,
+        split_ratios=(0.6, 0.2, 0.2),
+        split_seed=0,
+        filters={"min_elo": 2000, "min_elo_mode": "both", "require_rated": True},
+    )
+
+    m = json.loads(manifest_path.read_text())
+    assert m["num_games_raw"] == 2
+    assert m["num_games_used"] == 1
+    assert m["num_games_skipped_filter"] == 1
+    assert m["num_games_skipped"] == 1

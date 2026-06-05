@@ -72,3 +72,45 @@ def test_dry_run_does_not_create_output_dir(tmp_path: Path, monkeypatch: pytest.
 
     assert script.main() == 0
     assert not output_dir.exists()
+
+
+def test_content_range_total_is_parsed() -> None:
+    script = load_script_module()
+
+    assert script.parse_content_range_total("bytes 100-199/1234") == 1234
+    assert script.parse_content_range_total("bytes 100-199/*") is None
+    assert script.parse_content_range_total("bad") is None
+
+
+def test_download_keeps_partial_when_response_is_short(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    script = load_script_module()
+    output_path = tmp_path / "archive.pgn.zst"
+
+    class ShortResponse:
+        headers = {"Content-Length": "10"}
+
+        def __init__(self) -> None:
+            self._chunks = [b"abc", b""]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+        def getcode(self) -> int:
+            return 200
+
+        def read(self, _size: int) -> bytes:
+            return self._chunks.pop(0)
+
+    monkeypatch.setattr(script.urllib.request, "urlopen", lambda *_args, **_kwargs: ShortResponse())
+
+    with pytest.raises(RuntimeError, match="incomplete download"):
+        script.download_file("https://example.test/archive.pgn.zst", output_path, 1024, 60)
+
+    assert not output_path.exists()
+    assert output_path.with_suffix(".zst.part").read_bytes() == b"abc"

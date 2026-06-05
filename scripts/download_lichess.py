@@ -102,7 +102,7 @@ def copy_response_to_file(
     output_path: Path,
     mode: str,
     chunk_size: int,
-) -> None:
+) -> int:
     started = time.monotonic()
     last_report = started
     downloaded = output_path.stat().st_size if output_path.exists() and mode == "a" else 0
@@ -121,6 +121,55 @@ def copy_response_to_file(
                 speed = (downloaded / 1_000_000) / elapsed
                 print(f"{output_path.name}: {mb:.1f} MB downloaded ({speed:.1f} MB/s)", file=sys.stderr)
                 last_report = now
+    return downloaded
+
+
+def parse_content_range_total(value: str | None) -> int | None:
+    """Parse the total size from a Content-Range header."""
+
+    if not value:
+        return None
+    try:
+        unit_and_range, total_text = value.split("/", maxsplit=1)
+        unit, _range_text = unit_and_range.split(" ", maxsplit=1)
+    except ValueError:
+        return None
+    if unit.lower() != "bytes" or total_text == "*":
+        return None
+    try:
+        return int(total_text)
+    except ValueError:
+        return None
+
+
+def parse_content_length(value: str | None) -> int | None:
+    if not value:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+def expected_download_size(
+    response: urllib.request.addinfourl,
+    *,
+    status: int,
+    resume_bytes: int,
+    mode: str,
+) -> int | None:
+    """Return expected final file size when HTTP headers provide one."""
+
+    content_range_total = parse_content_range_total(response.headers.get("Content-Range"))
+    if content_range_total is not None:
+        return content_range_total
+
+    content_length = parse_content_length(response.headers.get("Content-Length"))
+    if content_length is None:
+        return None
+    if status == 206 or mode == "a":
+        return resume_bytes + content_length
+    return content_length
 
 
 def download_file(url: str, output_path: Path, chunk_size: int, timeout: int) -> str:
@@ -138,11 +187,23 @@ def download_file(url: str, output_path: Path, chunk_size: int, timeout: int) ->
                 mode = "a"
             else:
                 mode = "w"
-            copy_response_to_file(response, partial_path, mode, chunk_size)
+            expected_size = expected_download_size(
+                response,
+                status=status,
+                resume_bytes=resume_bytes,
+                mode=mode,
+            )
+            downloaded = copy_response_to_file(response, partial_path, mode, chunk_size)
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             raise RuntimeError(f"{url} was not found; check that this month has been released") from exc
         raise
+
+    if expected_size is not None and downloaded != expected_size:
+        raise RuntimeError(
+            f"incomplete download for {url}: got {downloaded} bytes, expected "
+            f"{expected_size}; kept partial file at {partial_path}"
+        )
 
     shutil.move(str(partial_path), output_path)
     return "downloaded"

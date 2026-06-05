@@ -27,17 +27,30 @@ def read_jsonl_samples(path: str | Path) -> list[DatasetSample]:
     return list(iter_jsonl_samples(path))
 
 
-def iter_jsonl_samples(path: str | Path) -> Iterator[DatasetSample]:
-    """Stream supervised dataset-builder samples from one JSONL shard."""
+def iter_jsonl_samples(path: str | Path, *, start_index: int = 0) -> Iterator[DatasetSample]:
+    """Stream supervised dataset-builder samples from one JSONL shard.
+
+    `start_index` skips that many non-empty rows without decoding them. It is
+    intended for resuming derived cache builds after the source shard identity
+    has already been checked.
+    """
+
+    if start_index < 0:
+        raise ValueError("start_index must be non-negative")
 
     shard_path = Path(path)
+    sample_index = 0
     with shard_path.open(encoding="utf-8") as f:
         for line_number, line in enumerate(f, start=1):
             if not line.strip():
                 continue
+            if sample_index < start_index:
+                sample_index += 1
+                continue
             sample = json.loads(line)
             _validate_sample(sample, shard_path, line_number)
             yield sample
+            sample_index += 1
 
 
 class SupervisedChessDataset(Dataset):

@@ -40,6 +40,22 @@ Recommended filters:
 
 Filtering choices must be saved in the dataset manifest. If the project uses rating, time-control, date, termination, or variant filters, record exact thresholds and skipped-game counters.
 
+Current executable PGN header filters:
+
+- `min_elo`: integer rating threshold
+- `min_elo_mode`: `both`, `either`, `white`, `black`, or `average`
+- `require_rated`: boolean, checked from Lichess-style `Event`/`Rated` headers
+- `max_kept_games`: optional cap used by the standalone fast filter to stop
+  after writing a bounded number of matching games
+
+Unknown filter keys are treated as provenance metadata only and must not affect
+which games are emitted.
+
+The standalone `filter_pgn.py` path is a header-only prefilter for large PGN
+archives. It does not validate movetext or legal moves. The dataset builder
+must still fully parse the filtered PGN, skip corrupt/illegal games, and record
+those skips in the processed dataset manifest.
+
 ## Splitting
 
 Split by game, not by position.
@@ -140,6 +156,22 @@ values.npy          float32 [num_samples]
 manifest.json
 ```
 
+During a build, arrays are written as temporary files:
+
+```text
+boards.npy.tmp
+policy_indices.npy.tmp
+values.npy.tmp
+progress.json
+```
+
+`progress.json` records the source shard identity, expected shapes and dtypes,
+and the number of completed samples. If a build is interrupted before
+`manifest.json` is written, rerunning the same command may resume from the
+recorded sample index after validating that the source shard and temporary array
+files still match the recorded cache contract. If the progress file is missing
+or incompatible, the builder starts a fresh cache build.
+
 Boards are stored as `uint8` because the current 18 documented planes are
 binary. Training casts cached boards to `float32` on the selected device before
 model inference. If board planes ever become non-binary, this cache format must
@@ -158,7 +190,8 @@ decoding FENs in the hot path.
 Cache builders must write array files through temporary paths and write
 `manifest.json` last, after all arrays are complete. Cache readers must reject
 missing files, unsupported schema versions, and unexpected shapes or dtypes
-before using cached tensors.
+before using cached tensors. Cache readers must ignore in-progress temporary
+files and require `manifest.json` as the completed-cache marker.
 
 ## Manifest
 
@@ -174,6 +207,7 @@ Every processed dataset should save a manifest:
   "num_games_skipped": 0,
   "num_games_skipped_corrupt": 0,
   "num_games_skipped_unknown_result": 0,
+  "num_games_skipped_filter": 0,
   "num_duplicate_games": 0,
   "num_positions": 0,
   "filters": {},
@@ -192,6 +226,7 @@ Track:
 - games read
 - games skipped
 - unknown result games
+- games skipped by executable filters
 - illegal move errors
 - positions emitted
 - checkmates

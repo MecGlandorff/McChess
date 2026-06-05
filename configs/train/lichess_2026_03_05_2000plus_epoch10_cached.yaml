@@ -1,0 +1,26 @@
+# Cached 10-epoch supervised run over recent 2000+ Lichess games.
+#
+# This expects configs/data/lichess_2026_03_05_2000plus.yaml to have been built
+# and tensor caches to exist under data/tensor_cache/lichess_2026_03_05_2000plus.
+
+train_path: data/processed/lichess_2026_03_05_2000plus/train.jsonl
+val_path: data/processed/lichess_2026_03_05_2000plus/val.jsonl
+train_cache_dir: data/tensor_cache/lichess_2026_03_05_2000plus/train
+val_cache_dir: data/tensor_cache/lichess_2026_03_05_2000plus/val
+dataset_manifest_path: data/manifests/lichess_2026_03_05_2000plus_manifest.json
+output_dir: runs/lichess_2026_03_05_2000plus_epoch10_cached
+
+seed: 20260601
+device: cuda
+batch_size: 2048
+epochs: 10
+learning_rate: 0.0005
+weight_decay: 0.001
+value_weight: 1.0
+num_workers: 4
+log_every_steps: 100
+
+model:
+  channels: 32
+  num_blocks: 1
+  value_hidden_dim: 64

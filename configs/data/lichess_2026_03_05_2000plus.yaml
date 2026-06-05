@@ -1,0 +1,25 @@
+source: data/raw/lichess/lichess_2026_03_05_2000plus.filtered.pgn
+output_dir: data/processed/lichess_2026_03_05_2000plus
+manifest_path: data/manifests/lichess_2026_03_05_2000plus_manifest.json
+
+source_description: >-
+  Filtered Lichess standard rated PGN archive from 2026-03, 2026-04, and
+  2026-05; both players rated 2000+ at game time; human moves/results only;
+  PGN comments ignored by parser.
+
+split_ratios: [0.98, 0.01, 0.01]
+split_seed: 20260601
+show_progress: true
+
+filters:
+  source: lichess standard rated
+  months: ["2026-03", "2026-04", "2026-05"]
+  min_elo: 2000
+  min_elo_mode: both
+  require_rated: true
+  variant: standard
+  engine_labels_used: false
+  pgn_comments_used: false
+  duplicate_handling: kept
+  split_by: game
+  filtered_pgn_manifest: data/manifests/lichess_2026_03_05_2000plus_filter_manifest.json
