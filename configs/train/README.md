@@ -25,3 +25,6 @@ Current development configs:
   the recent March-May 2026 Lichess 2000+ filtered dataset.
 - `lichess_2026_05_2000plus_epoch10_cached.yaml`: cached 10-epoch run over the
   May 2026 Lichess 2000+ filtered dataset.
+- `lichess_2026_05_2000plus_epoch20_cached_batchmetrics.yaml`: cached 20-epoch
+  rerun over the May 2026 Lichess 2000+ filtered dataset with batch-level loss
+  metrics enabled.

@@ -9,7 +9,7 @@ import json
 import random
 import shutil
 import time
-from collections.abc import Sized
+from collections.abc import Callable, Sized
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -75,6 +75,21 @@ class EpochMetrics:
     val_total_loss: float | None
     val_policy_loss: float | None
     val_value_loss: float | None
+    elapsed_seconds: float
+
+
+@dataclass(frozen=True)
+class BatchMetrics:
+    epoch: int
+    step: int
+    global_step: int
+    epoch_samples_seen: int
+    train_total_loss: float
+    train_policy_loss: float
+    train_value_loss: float
+    running_train_total_loss: float
+    running_train_policy_loss: float
+    running_train_value_loss: float
     elapsed_seconds: float
 
 
@@ -157,12 +172,16 @@ def train_one_epoch(
     *,
     epoch: int,
     log_every_steps: int,
-) -> tuple[float, float, float]:
+    global_step_start: int = 0,
+    batch_metrics_callback: Callable[[BatchMetrics], None] | None = None,
+) -> tuple[float, float, float, int]:
     model.train()
     total_loss = 0.0
     policy_loss = 0.0
     value_loss = 0.0
     total_samples = 0
+    global_step = global_step_start
+    epoch_start = time.perf_counter()
     progress = tqdm(
         loader,
         desc=f"epoch {epoch:03d} train",
@@ -193,18 +212,39 @@ def train_one_epoch(
         total_loss += losses.total.item() * batch_size
         policy_loss += losses.policy.item() * batch_size
         value_loss += losses.value.item() * batch_size
+        global_step += 1
 
         if log_every_steps == 0 or step % log_every_steps == 0 or step == len(loader):
+            running_total = total_loss / total_samples
+            running_policy = policy_loss / total_samples
+            running_value = value_loss / total_samples
             progress.set_postfix(
                 total=f"{losses.total.item():.4f}",
                 policy=f"{losses.policy.item():.4f}",
                 value=f"{losses.value.item():.4f}",
             )
+            if batch_metrics_callback is not None:
+                batch_metrics_callback(
+                    BatchMetrics(
+                        epoch=epoch,
+                        step=step,
+                        global_step=global_step,
+                        epoch_samples_seen=total_samples,
+                        train_total_loss=losses.total.item(),
+                        train_policy_loss=losses.policy.item(),
+                        train_value_loss=losses.value.item(),
+                        running_train_total_loss=running_total,
+                        running_train_policy_loss=running_policy,
+                        running_train_value_loss=running_value,
+                        elapsed_seconds=time.perf_counter() - epoch_start,
+                    )
+                )
 
     return (
         total_loss / total_samples,
         policy_loss / total_samples,
         value_loss / total_samples,
+        global_step,
     )
 
 
@@ -269,6 +309,40 @@ def json_ready_config(config: SupervisedTrainConfig, device: torch.device) -> di
 def write_jsonl(path: Path, payload: dict[str, Any]) -> None:
     with path.open("a", encoding="utf-8") as file:
         file.write(json.dumps(payload, sort_keys=True) + "\n")
+
+
+def build_checkpoint(
+    model: PolicyValueResNet,
+    model_config: ResNetConfig,
+    config: SupervisedTrainConfig,
+    device: torch.device,
+    *,
+    epoch: int,
+    metrics: EpochMetrics,
+    saved_at: str,
+    completed_at: str | None,
+) -> dict[str, Any]:
+    return {
+        "model_state_dict": model.state_dict(),
+        "model_config": asdict(model_config),
+        "train_config": json_ready_config(config, device),
+        "epoch": epoch,
+        "metrics": asdict(metrics),
+        "saved_at": saved_at,
+        "completed_at": completed_at,
+    }
+
+
+def save_checkpoint(path: Path, checkpoint: dict[str, Any]) -> None:
+    tmp_path = path.with_name(path.name + ".tmp")
+    torch.save(checkpoint, tmp_path)
+    tmp_path.replace(path)
+
+
+def write_text_atomic(path: Path, text: str) -> None:
+    tmp_path = path.with_name(path.name + ".tmp")
+    tmp_path.write_text(text, encoding="utf-8")
+    tmp_path.replace(path)
 
 
 def write_loss_svg(metrics: list[EpochMetrics], output_path: Path) -> None:
@@ -358,7 +432,126 @@ def write_loss_svg(metrics: list[EpochMetrics], output_path: Path) -> None:
   </g>
 </svg>
 '''
-    output_path.write_text(svg, encoding="utf-8")
+    write_text_atomic(output_path, svg)
+
+
+def write_batch_loss_svg(
+    batch_metrics: list[BatchMetrics],
+    epoch_metrics: list[EpochMetrics],
+    output_path: Path,
+) -> None:
+    """Write train loss by logged batch, with validation markers at epoch ends."""
+
+    if not batch_metrics:
+        return
+
+    width = 920
+    height = 500
+    margin_left = 78
+    margin_right = 28
+    margin_top = 34
+    margin_bottom = 68
+    plot_width = width - margin_left - margin_right
+    plot_height = height - margin_top - margin_bottom
+
+    batch_values = [metric.train_total_loss for metric in batch_metrics]
+    running_values = [metric.running_train_total_loss for metric in batch_metrics]
+    last_step_by_epoch = {metric.epoch: metric.global_step for metric in batch_metrics}
+    val_points = [
+        (last_step_by_epoch[metric.epoch], metric.val_total_loss)
+        for metric in epoch_metrics
+        if metric.val_total_loss is not None and metric.epoch in last_step_by_epoch
+    ]
+    val_values = [value for _, value in val_points]
+    all_values = batch_values + running_values + val_values
+    min_loss = min(all_values)
+    max_loss = max(all_values)
+    if min_loss == max_loss:
+        min_loss -= 0.5
+        max_loss += 0.5
+    loss_padding = (max_loss - min_loss) * 0.08
+    min_loss -= loss_padding
+    max_loss += loss_padding
+
+    min_step = batch_metrics[0].global_step
+    max_step = batch_metrics[-1].global_step
+
+    def x_for(global_step: int) -> float:
+        if min_step == max_step:
+            return margin_left + plot_width / 2
+        fraction = (global_step - min_step) / (max_step - min_step)
+        return margin_left + fraction * plot_width
+
+    def y_for(loss: float) -> float:
+        fraction = (loss - min_loss) / (max_loss - min_loss)
+        return margin_top + (1.0 - fraction) * plot_height
+
+    def points(values: list[float]) -> str:
+        return " ".join(
+            f"{x_for(metric.global_step):.1f},{y_for(value):.1f}"
+            for metric, value in zip(batch_metrics, values)
+        )
+
+    grid_lines = []
+    y_ticks = 5
+    for tick in range(y_ticks + 1):
+        fraction = tick / y_ticks
+        loss = max_loss - fraction * (max_loss - min_loss)
+        y = margin_top + fraction * plot_height
+        grid_lines.append(
+            f'<line x1="{margin_left}" y1="{y:.1f}" x2="{width - margin_right}" '
+            f'y2="{y:.1f}" stroke="#e5e7eb" />'
+        )
+        grid_lines.append(
+            f'<text x="{margin_left - 10}" y="{y + 4:.1f}" text-anchor="end" '
+            f'font-size="12" fill="#374151">{loss:.2f}</text>'
+        )
+
+    x_labels = [(batch_metrics[0].global_step, str(batch_metrics[0].global_step))]
+    for epoch, global_step in sorted(last_step_by_epoch.items()):
+        x_labels.append((global_step, f"e{epoch}"))
+    x_label_svg = []
+    seen_steps: set[int] = set()
+    for global_step, label in x_labels:
+        if global_step in seen_steps:
+            continue
+        seen_steps.add(global_step)
+        x = x_for(global_step)
+        x_label_svg.append(
+            f'<text x="{x:.1f}" y="{height - 30}" text-anchor="middle" '
+            f'font-size="12" fill="#374151">{label}</text>'
+        )
+
+    val_marker_svg = "".join(
+        f'<circle cx="{x_for(global_step):.1f}" cy="{y_for(value):.1f}" r="4.2" '
+        f'fill="#dc2626" />'
+        for global_step, value in val_points
+    )
+
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
+  <rect width="100%" height="100%" fill="#ffffff" />
+  <text x="{width / 2:.1f}" y="22" text-anchor="middle" font-size="16" font-family="Arial, sans-serif" fill="#111827">Supervised Batch Loss Curve</text>
+  <g font-family="Arial, sans-serif">
+    {"".join(grid_lines)}
+    <line x1="{margin_left}" y1="{margin_top}" x2="{margin_left}" y2="{height - margin_bottom}" stroke="#111827" />
+    <line x1="{margin_left}" y1="{height - margin_bottom}" x2="{width - margin_right}" y2="{height - margin_bottom}" stroke="#111827" />
+    {"".join(x_label_svg)}
+    <text x="{width / 2:.1f}" y="{height - 8}" text-anchor="middle" font-size="13" fill="#111827">Logged train step</text>
+    <text x="18" y="{height / 2:.1f}" transform="rotate(-90 18 {height / 2:.1f})" text-anchor="middle" font-size="13" fill="#111827">Total loss</text>
+    <polyline points="{points(batch_values)}" fill="none" stroke="#93c5fd" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />
+    <polyline points="{points(running_values)}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+    {val_marker_svg}
+    <rect x="{width - 225}" y="42" width="188" height="74" fill="#ffffff" stroke="#d1d5db" />
+    <line x1="{width - 210}" y1="62" x2="{width - 178}" y2="62" stroke="#93c5fd" stroke-width="2" />
+    <text x="{width - 168}" y="66" font-size="12" fill="#111827">batch train total</text>
+    <line x1="{width - 210}" y1="84" x2="{width - 178}" y2="84" stroke="#2563eb" stroke-width="3" />
+    <text x="{width - 168}" y="88" font-size="12" fill="#111827">running train total</text>
+    <circle cx="{width - 194}" cy="104" r="4.2" fill="#dc2626" />
+    <text x="{width - 168}" y="108" font-size="12" fill="#111827">epoch val total</text>
+  </g>
+</svg>
+'''
+    write_text_atomic(output_path, svg)
 
 
 def run_training(config_path: str | Path) -> Path:
@@ -414,6 +607,11 @@ def run_training(config_path: str | Path) -> Path:
     )
 
     status_path = output_dir / "status.json"
+    final_checkpoint_path = output_dir / "checkpoint.pt"
+    latest_checkpoint_path = output_dir / "checkpoint_latest.pt"
+    loss_plot_path = output_dir / "loss.svg"
+    batch_metrics_path = output_dir / "batch_metrics.jsonl"
+    batch_loss_plot_path = output_dir / "batch_loss.svg"
     started_at = dt.datetime.now(dt.timezone.utc).isoformat()
     train_sample_count = len(cast(Sized, train_dataset))
     val_sample_count = len(cast(Sized, val_dataset)) if val_dataset is not None else 0
@@ -423,8 +621,13 @@ def run_training(config_path: str | Path) -> Path:
         "completed_at": None,
         "config_path": str(config_path),
         "metrics_path": str(output_dir / "metrics.jsonl"),
-        "checkpoint_path": str(output_dir / "checkpoint.pt"),
-        "loss_plot_path": str(output_dir / "loss.svg"),
+        "batch_metrics_path": str(batch_metrics_path),
+        "checkpoint_path": str(final_checkpoint_path),
+        "latest_checkpoint_path": str(latest_checkpoint_path),
+        "latest_epoch_checkpoint_path": None,
+        "epoch_checkpoint_pattern": str(output_dir / "checkpoint_epoch_{epoch:03d}.pt"),
+        "loss_plot_path": str(loss_plot_path),
+        "batch_loss_plot_path": str(batch_loss_plot_path),
         "dataset_manifest_path": config.dataset_manifest_path,
         "train_cache_dir": config.train_cache_dir,
         "val_cache_dir": config.val_cache_dir,
@@ -433,6 +636,7 @@ def run_training(config_path: str | Path) -> Path:
         "pin_memory": device.type == "cuda",
         "train_samples": train_sample_count,
         "val_samples": val_sample_count,
+        "last_completed_epoch": 0,
     }
     status_path.write_text(json.dumps(status, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
@@ -444,13 +648,21 @@ def run_training(config_path: str | Path) -> Path:
 
     metrics_path = output_dir / "metrics.jsonl"
     metrics_path.write_text("", encoding="utf-8")
+    batch_metrics_path.write_text("", encoding="utf-8")
     run_start = time.perf_counter()
     epoch_metrics: list[EpochMetrics] = []
+    batch_metrics: list[BatchMetrics] = []
+    global_step = 0
+
+    def record_batch_metrics(metrics: BatchMetrics) -> None:
+        batch_metrics.append(metrics)
+        write_jsonl(batch_metrics_path, asdict(metrics))
+        write_batch_loss_svg(batch_metrics, epoch_metrics, batch_loss_plot_path)
 
     try:
         for epoch in range(1, config.epochs + 1):
             epoch_start = time.perf_counter()
-            train_total, train_policy, train_value = train_one_epoch(
+            train_total, train_policy, train_value, global_step = train_one_epoch(
                 model,
                 train_loader,
                 optimizer,
@@ -458,6 +670,8 @@ def run_training(config_path: str | Path) -> Path:
                 config.value_weight,
                 epoch=epoch,
                 log_every_steps=config.log_every_steps,
+                global_step_start=global_step,
+                batch_metrics_callback=record_batch_metrics,
             )
             val_total: float | None = None
             val_policy: float | None = None
@@ -483,6 +697,30 @@ def run_training(config_path: str | Path) -> Path:
             epoch_metrics.append(metrics)
             write_jsonl(metrics_path, asdict(metrics))
 
+            saved_at = dt.datetime.now(dt.timezone.utc).isoformat()
+            epoch_checkpoint_path = output_dir / f"checkpoint_epoch_{epoch:03d}.pt"
+            checkpoint = build_checkpoint(
+                model,
+                model_config,
+                config,
+                device,
+                epoch=epoch,
+                metrics=metrics,
+                saved_at=saved_at,
+                completed_at=None,
+            )
+            save_checkpoint(epoch_checkpoint_path, checkpoint)
+            save_checkpoint(latest_checkpoint_path, checkpoint)
+            write_loss_svg(epoch_metrics, loss_plot_path)
+            write_batch_loss_svg(batch_metrics, epoch_metrics, batch_loss_plot_path)
+            status["last_completed_epoch"] = epoch
+            status["latest_epoch_checkpoint_path"] = str(epoch_checkpoint_path)
+            status["elapsed_seconds"] = time.perf_counter() - run_start
+            status_path.write_text(
+                json.dumps(status, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+
             val_text = (
                 f" val_total={val_total:.4f} val_policy={val_policy:.4f} val_value={val_value:.4f}"
                 if val_total is not None and val_policy is not None and val_value is not None
@@ -496,15 +734,19 @@ def run_training(config_path: str | Path) -> Path:
                 flush=True,
             )
 
-        write_loss_svg(epoch_metrics, output_dir / "loss.svg")
         completed_at = dt.datetime.now(dt.timezone.utc).isoformat()
-        checkpoint = {
-            "model_state_dict": model.state_dict(),
-            "model_config": asdict(model_config),
-            "train_config": json_ready_config(config, device),
-            "completed_at": completed_at,
-        }
-        torch.save(checkpoint, output_dir / "checkpoint.pt")
+        final_checkpoint = build_checkpoint(
+            model,
+            model_config,
+            config,
+            device,
+            epoch=epoch_metrics[-1].epoch,
+            metrics=epoch_metrics[-1],
+            saved_at=completed_at,
+            completed_at=completed_at,
+        )
+        save_checkpoint(final_checkpoint_path, final_checkpoint)
+        save_checkpoint(latest_checkpoint_path, final_checkpoint)
         status["status"] = "completed"
         status["completed_at"] = completed_at
         status["elapsed_seconds"] = time.perf_counter() - run_start
@@ -512,8 +754,10 @@ def run_training(config_path: str | Path) -> Path:
             json.dumps(status, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
-        print(f"saved checkpoint to {output_dir / 'checkpoint.pt'}")
-        print(f"saved loss plot to {output_dir / 'loss.svg'}")
+        print(f"saved checkpoint to {final_checkpoint_path}")
+        print(f"saved latest checkpoint to {latest_checkpoint_path}")
+        print(f"saved loss plot to {loss_plot_path}")
+        print(f"saved batch loss plot to {batch_loss_plot_path}")
         return output_dir
     except Exception:
         status["status"] = "failed"

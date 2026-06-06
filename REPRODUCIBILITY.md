@@ -20,6 +20,19 @@ Each training or evaluation run should create a run directory containing:
 - hardware notes when available
 - start time, end time, and status
 
+Supervised training writes recoverable artifacts after every completed epoch:
+
+- `batch_metrics.jsonl` for train loss at `log_every_steps` intervals
+- `batch_loss.svg`, refreshed during epochs from batch-level train metrics
+- `checkpoint_epoch_###.pt` for the model after that epoch
+- `checkpoint_latest.pt`, overwritten with the newest completed epoch
+- `loss.svg`, refreshed after each completed epoch
+- `checkpoint.pt`, written only after the configured run completes
+
+If a run is interrupted between epochs or during a later epoch, `status.json`
+should still identify the latest completed epoch and the latest checkpoint path.
+The batch-level metrics may include logged train loss from the interrupted epoch.
+
 ## Tiny End-To-End Reproduction
 
 The repository will maintain a tiny path that can run on CPU:

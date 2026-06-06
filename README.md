@@ -17,13 +17,15 @@ Implemented:
 - optional tensor cache for faster local training input pipelines
 - PyTorch dataset support for JSONL shards and tensor caches
 - compact ResNet policy/value model with supervised loss
-- supervised training script with metrics, checkpoints, and plots
+- supervised training script with epoch/batch metrics, per-epoch checkpoints, and plots
+- checkpoint loading plus initial random, material, and policy-only bots
+- clickable notebook play helper for policy-only checkpoints
 - local data, training, and smoke-test configs
 - tests for chess/tensor contracts, data processing, model shapes, losses, and scripts
 
 Not yet implemented:
 
-- handmade baseline bots
+- remaining handmade baselines such as shallow minimax
 - arena evaluation
 - neural MCTS
 - temporal and attention model families
@@ -40,7 +42,8 @@ Not yet implemented:
 | Data pipeline | PGN streaming, final-result value targets, game-level splits, JSONL shards, dataset manifests |
 | Training input | JSONL-backed dataset plus optional encoded tensor cache for local throughput |
 | Model | Compact PyTorch ResNet returning `policy_logits: [batch, 4672]` and `value: [batch]` |
-| Training | Config-driven supervised training script with metrics, checkpoints, and diagnostic plots |
+| Training | Config-driven supervised training script with epoch/batch metrics, per-epoch checkpoints, and diagnostic plots |
+| Play | Policy-only checkpoint bot with explicit legal masking and clickable notebook play helper |
 | Reproducibility | YAML configs, dataset protocols, evaluation protocols, model card, invariants, and CI checks |
 | Validation | pytest coverage for board encoding, move indexing, legal masks, PGN handling, datasets, model outputs, losses, and scripts |
 
@@ -229,6 +232,7 @@ Current smoke notebooks:
 - `notebooks/encoding_smoke_test.ipynb`
 - `notebooks/move_indexing_smoke_test.ipynb`
 - `notebooks/dataset_builder_smoke_test.ipynb`
+- `notebooks/play_policy_bot.ipynb`
 
 ## Research Discipline
 
