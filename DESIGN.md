@@ -214,6 +214,50 @@ Self-play sample:
 - policy target: MCTS visit distribution
 - value target: final self-play result
 
+## Training Artifacts
+
+Supervised training run directories contain the copied config, `metrics.jsonl`,
+`batch_metrics.jsonl`, `status.json`, checkpoints, `loss.svg`, and
+`batch_loss.svg`.
+
+`metrics.jsonl` records one row per completed epoch, including train and
+validation policy/value/total losses. `batch_metrics.jsonl` records train-only
+losses at the configured `log_every_steps` interval, including the latest batch
+loss and the running average within the current epoch. Full validation still
+runs at epoch boundaries by default.
+
+Checkpoint files use PyTorch serialization and contain:
+
+- `model_state_dict`
+- `model_config`
+- `train_config`
+- `epoch`
+- `metrics`
+- `saved_at`
+- `completed_at`
+
+The trainer refreshes `batch_loss.svg` while an epoch is running. It writes
+`checkpoint_epoch_###.pt`, `checkpoint_latest.pt`, and `loss.svg` after each
+completed epoch. `checkpoint.pt` is the final completed-run checkpoint and is
+written only after all configured epochs finish.
+
+## Playable Bots
+
+Initial playable agents use a small `choose_move(board)` bot interface.
+
+- random legal-move bot
+- one-ply material bot
+- policy-only checkpoint bot
+
+The policy-only bot loads a supervised `PolicyValueResNet` checkpoint, encodes
+the current board, runs the policy head, masks illegal moves with
+`legal_policy_mask(board)`, and chooses the highest-logit legal move. It does
+not use MCTS or the value head for move selection.
+
+The notebook play helper provides a click-source, click-target board for local
+inspection. It is an interactive debugging aid, not an arena evaluation or
+strength result.
+
 ## Model Families
 
 Baseline:
