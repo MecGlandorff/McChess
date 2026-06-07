@@ -54,8 +54,9 @@ This matters because the global Python kernel may not have `python-chess`,
 From the repository root:
 
 ```powershell
-New-Item -ItemType Directory -Force .local\jupyter\nbclassic-runtime | Out-Null
+New-Item -ItemType Directory -Force .local\jupyter\nbclassic-runtime, .local\ipython | Out-Null
 $env:JUPYTER_RUNTIME_DIR = "$PWD\.local\jupyter\nbclassic-runtime"
+$env:IPYTHONDIR = "$PWD\.local\ipython"
 poetry run jupyter nbclassic --no-browser --notebook-dir="$PWD" --port=8888 --ServerApp.token=mcchess
 ```
 
@@ -120,8 +121,9 @@ the browser frontend is not rendering ipywidgets. Start Jupyter with
 `poetry run jupyter nbclassic` from the Poetry environment, then reopen the
 notebook.
 
-If Jupyter reports a permission error for `jupyter_cookie_secret`, use a fresh
-runtime directory as shown in the start command above.
+If Jupyter reports a permission error for `jupyter_cookie_secret`, IPython
+history, or `profile_default`, use the local runtime and `IPYTHONDIR` paths
+shown in the start command above.
 
 If board rendering looks stale after a code change, restart the kernel and run
 all cells again. Existing notebook widgets keep the Python code they were
