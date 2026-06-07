@@ -101,6 +101,32 @@ For score percentage, use:
 score = (wins + 0.5 * draws) / games
 ```
 
+## Supervised Checkpoint Evaluation
+
+Use `scripts/eval_top1.py` for held-out supervised policy/value evaluation. It
+reads a YAML config, evaluates a checkpoint against a JSONL shard, and writes a
+JSON result artifact.
+
+The JSONL shard is required for legal-masked policy metrics because the
+evaluator reconstructs each FEN and uses `python-chess` plus
+`legal_policy_mask(board)`. Tensor caches do not store FENs and are not the
+source of truth for legal top-k evaluation.
+
+The result JSON records:
+
+- checkpoint path, checkpoint epoch, and checkpoint metadata
+- dataset path, manifest path, split, seed, device, batch size, and sample count
+- policy cross-entropy and legal-masked policy cross-entropy
+- raw top-k accuracy and legal-masked top-k accuracy
+- raw argmax legal fraction
+- value MSE, RMSE, MAE, zero/mean baselines, and relative MSE improvement
+- prediction distribution, decisive sign accuracy, calibration buckets, and ply
+  buckets
+
+Use validation data for tuning choices such as checkpoint selection,
+normalization variants, loss weights, or reranking. Use test data for the final
+reported number under a fixed config.
+
 ## Reportable Result Gate
 
 A result is reportable only if it includes:
