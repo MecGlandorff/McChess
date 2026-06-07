@@ -34,7 +34,6 @@ class NotebookChessGame:
             )
         )
         self.widget = widgets.VBox([self._status, self._board_grid])
-        self._build_buttons()
         self._render()
         if self.board.turn != self.human_color:
             self.bot_move()
@@ -93,6 +92,7 @@ class NotebookChessGame:
 
     def _build_buttons(self) -> None:
         children = []
+        self._buttons = {}
         for square in self._display_squares():
             button = widgets.Button(layout=widgets.Layout(width="40px", height="40px"))
             button.on_click(self._make_click_handler(square))
@@ -142,6 +142,7 @@ class NotebookChessGame:
         return chess.Move(source, target, promotion=promotion)
 
     def _render(self) -> None:
+        self._build_buttons()
         for square, button in self._buttons.items():
             piece = self.board.piece_at(square)
             button.description = piece.unicode_symbol() if piece is not None else ""
