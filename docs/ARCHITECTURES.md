@@ -40,6 +40,10 @@ policy head
 value head
 ```
 
+No normalization layers are used in the current baseline. BatchNorm, GroupNorm,
+or other normalization variants should be treated as matched ablations rather
+than silently replacing the baseline architecture.
+
 Outputs:
 
 ```text
