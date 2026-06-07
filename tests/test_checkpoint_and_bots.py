@@ -142,6 +142,14 @@ def test_notebook_game_accepts_click_move_and_bot_reply() -> None:
     game.click_square("e4")
 
     assert [move.uci() for move in game.board.move_stack] == ["e2e4", "e7e5"]
+    assert game.board.piece_at(chess.E2) is None
+    assert game.board.piece_at(chess.E4) == chess.Piece(chess.PAWN, chess.WHITE)
+    assert game.board.piece_at(chess.E7) is None
+    assert game.board.piece_at(chess.E5) == chess.Piece(chess.PAWN, chess.BLACK)
+    assert game._buttons[chess.E2].description == ""
+    assert game._buttons[chess.E4].description == chess.Piece(chess.PAWN, chess.WHITE).unicode_symbol()
+    assert game._buttons[chess.E7].description == ""
+    assert game._buttons[chess.E5].description == chess.Piece(chess.PAWN, chess.BLACK).unicode_symbol()
 
 
 def test_notebook_game_illegal_click_does_not_mutate_board() -> None:
