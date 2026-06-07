@@ -100,7 +100,7 @@ PGN games
   -> dataset builder                         implemented
   -> board tensors, policy targets, values   implemented
   -> policy/value ResNet                     implemented
-  -> policy-only bot                         future
+  -> policy-only bot                         implemented
   -> MCTS-enhanced bot                       future
   -> arena evaluation                        future
 ```
@@ -200,6 +200,7 @@ Useful local workflow guides:
 
 - `docs/guides/INSTALL_DATA.md`
 - `docs/guides/GPU_POWER_LIMIT.md`
+- `docs/guides/HOW_TO_PLAY.md`
 
 GPU power limiting for NVIDIA cards can be toggled around CUDA training runs:
 
@@ -226,6 +227,18 @@ Start notebooks through Poetry:
 ```bash
 poetry run jupyter nbclassic
 ```
+
+Play against a local policy checkpoint in the notebook:
+
+```powershell
+New-Item -ItemType Directory -Force .local\jupyter\nbclassic-runtime | Out-Null
+$env:JUPYTER_RUNTIME_DIR = "$PWD\.local\jupyter\nbclassic-runtime"
+poetry run jupyter nbclassic --no-browser --notebook-dir="$PWD" --port=8888 --ServerApp.token=mcchess
+```
+
+Then open `notebooks/play_policy_bot.ipynb` and select the `McChess (.venv)`
+kernel. See `docs/guides/HOW_TO_PLAY.md` for setup, expected behavior, and
+troubleshooting.
 
 Current smoke notebooks:
 
