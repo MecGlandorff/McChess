@@ -2,7 +2,15 @@ import pytest
 import torch
 
 from mcchess.board import BOARD_PLANE_COUNT, POLICY_SIZE
-from mcchess.model import PolicyValueResNet, ResNetConfig, policy_value_loss
+from mcchess.model import (
+    RESNET_B,
+    PolicyValueResNet,
+    ResNetConfig,
+    available_model_presets,
+    build_model_from_preset,
+    get_model_preset,
+    policy_value_loss,
+)
 
 
 def small_config() -> ResNetConfig:
@@ -54,3 +62,29 @@ def test_resnet_config_rejects_invalid_sizes() -> None:
         ResNetConfig(channels=0)
     with pytest.raises(ValueError):
         ResNetConfig(num_blocks=0)
+
+
+def test_resnet_b_preset_has_policy_value_contract() -> None:
+    assert RESNET_B.config.channels == 64
+    assert RESNET_B.config.num_blocks == 6
+    assert RESNET_B.config.value_hidden_dim == 128
+
+    model = build_model_from_preset("resnet_b")
+    x = torch.randn(1, BOARD_PLANE_COUNT, 8, 8)
+
+    with torch.no_grad():
+        policy_logits, value = model(x)
+
+    assert policy_logits.shape == (1, POLICY_SIZE)
+    assert value.shape == (1,)
+    assert torch.isfinite(policy_logits).all()
+    assert torch.isfinite(value).all()
+
+
+def test_model_preset_lookup_uses_canonical_names_and_aliases() -> None:
+    assert available_model_presets() == ("resnet_baseline", "resnet_b")
+    assert get_model_preset("resnet_b") is RESNET_B
+    assert get_model_preset("resnet-b") is RESNET_B
+
+    with pytest.raises(ValueError, match="unknown model preset"):
+        get_model_preset("missing")

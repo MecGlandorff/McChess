@@ -2,7 +2,11 @@
 
 A compact neural chess research system trained without Stockfish, Syzygy, or external engine labels.
 
-McChess is an implemented supervised-learning research scaffold for neural chess, with explicit chess-rule contracts, data processing, a compact policy/value model, training utilities, reproducible configs, tests, and development smoke reports. MCTS, arena evaluation, temporal/attention models, search distillation, and self-play are future milestones unless explicitly marked otherwise.
+McChess currently has a working supervised-learning path: chess-rule contracts,
+PGN data processing, an 18-plane board encoder, compact policy/value ResNets,
+config-driven training, checkpoint loading, policy-only play, tests, and smoke
+reports. Search, arena evaluation, temporal/attention models, distillation, and
+self-play are planned next steps.
 
 ## Current Status
 
@@ -41,7 +45,7 @@ Not yet implemented:
 | Legality | Explicit `python-chess` legal policy mask; the model is not trusted to infer legal moves |
 | Data pipeline | PGN streaming, final-result value targets, game-level splits, JSONL shards, dataset manifests |
 | Training input | JSONL-backed dataset plus optional encoded tensor cache for local throughput |
-| Model | Compact PyTorch ResNet returning `policy_logits: [batch, 4672]` and `value: [batch]` |
+| Model | Compact PyTorch ResNet presets returning `policy_logits: [batch, 4672]` and `value: [batch]` |
 | Training | Config-driven supervised training script with epoch/batch metrics, per-epoch checkpoints, and diagnostic plots |
 | Play | Policy-only checkpoint bot with explicit legal masking and clickable notebook play helper |
 | Reproducibility | YAML configs, dataset protocols, evaluation protocols, model card, invariants, and CI checks |
@@ -91,7 +95,7 @@ This project does not use:
 - external engine evaluations
 - pretrained engine recommendations
 
-This project does not claim high Elo unless measured with a credible protocol.
+Strength claims need documented evaluations, not estimates.
 
 ## System Overview
 
@@ -110,6 +114,7 @@ PGN games
 Implemented:
 
 - ResNet policy/value model
+- named ResNet presets: `resnet_baseline` and `resnet_b`
 
 Planned ablations:
 
@@ -132,7 +137,7 @@ Planned ablations:
 
 - `src/mcchess/board/`: board tensors, move indexing, and legal masks
 - `src/mcchess/data/`: PGN parsing, dataset shards, tensor caches, and PyTorch datasets
-- `src/mcchess/model/`: policy/value ResNet and supervised losses
+- `src/mcchess/model/`: policy/value ResNets, model presets, and supervised losses
 - `scripts/`: dataset building, tensor-cache building, data download, and supervised training
 - `configs/`: reproducible data and training configurations
 - `tests/`: chess-rule, data, model-shape, loss, and script tests

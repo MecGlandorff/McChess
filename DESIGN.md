@@ -269,6 +269,7 @@ Baseline:
   minimal and makes later normalization changes measurable as matched
   ablations. BatchNorm, GroupNorm, or other normalization variants should be
   compared explicitly rather than assumed as part of the baseline.
+- Named ResNet presets currently include `resnet_baseline` and `resnet_b`.
 
 Ablations:
 
