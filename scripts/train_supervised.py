@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader, Dataset, Subset
 from tqdm.auto import tqdm
 
 from mcchess.data import SupervisedChessDataset, SupervisedTensorCacheDataset
-from mcchess.model import PolicyValueResNet, ResNetConfig, policy_value_loss
+from mcchess.model import PolicyValueResNet, ResNetConfig, get_model_preset, policy_value_loss
 
 
 @dataclass(frozen=True)
@@ -43,6 +43,7 @@ class SupervisedTrainConfig:
     value_weight: float = 1.0
     num_workers: int = 0
     log_every_steps: int = 20
+    model_preset: str | None = None
     model: ResNetConfig | None = None
 
     def __post_init__(self) -> None:
@@ -100,8 +101,27 @@ def load_config(path: str | Path) -> SupervisedTrainConfig:
         raise ValueError(f"{config_path} must contain a YAML mapping")
 
     model_raw = raw.pop("model", None)
-    model_config = ResNetConfig(**model_raw) if isinstance(model_raw, dict) else ResNetConfig()
-    return SupervisedTrainConfig(**raw, model=model_config)
+    model_preset_raw = raw.pop("model_preset", None)
+    model_config = _resolve_model_config(model_raw, model_preset_raw)
+    return SupervisedTrainConfig(
+        **raw,
+        model_preset=model_preset_raw if isinstance(model_preset_raw, str) else None,
+        model=model_config,
+    )
+
+
+def _resolve_model_config(model_raw: object, model_preset_raw: object) -> ResNetConfig:
+    if model_raw is not None and model_preset_raw is not None:
+        raise ValueError("set either model or model_preset, not both")
+    if model_preset_raw is not None:
+        if not isinstance(model_preset_raw, str):
+            raise ValueError("model_preset must be a string")
+        return get_model_preset(model_preset_raw).config
+    if model_raw is None:
+        return ResNetConfig()
+    if not isinstance(model_raw, dict):
+        raise ValueError("model must be a YAML mapping")
+    return ResNetConfig(**model_raw)
 
 
 def resolve_device(name: str) -> torch.device:

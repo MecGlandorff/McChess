@@ -11,6 +11,7 @@ import torch
 import yaml
 
 from mcchess.board import move_to_index
+from mcchess.model import RESNET_B
 
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "train_supervised.py"
@@ -92,6 +93,37 @@ def test_make_loader_can_pin_memory() -> None:
     )
 
     assert loader.pin_memory is True
+
+
+def test_load_config_accepts_model_preset(tmp_path: Path) -> None:
+    script = load_script_module()
+    config_path = tmp_path / "config.yaml"
+    config = {
+        "train_path": "train.jsonl",
+        "output_dir": "run",
+        "model_preset": "resnet_b",
+    }
+    config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
+
+    loaded = script.load_config(config_path)
+
+    assert loaded.model_preset == "resnet_b"
+    assert loaded.model == RESNET_B.config
+
+
+def test_load_config_rejects_ambiguous_model_and_preset(tmp_path: Path) -> None:
+    script = load_script_module()
+    config_path = tmp_path / "config.yaml"
+    config = {
+        "train_path": "train.jsonl",
+        "output_dir": "run",
+        "model_preset": "resnet_b",
+        "model": {"channels": 4, "num_blocks": 1, "value_hidden_dim": 8},
+    }
+    config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="either model or model_preset"):
+        script.load_config(config_path)
 
 
 def test_make_dataset_uses_tensor_cache_when_configured(tmp_path: Path) -> None:
