@@ -28,3 +28,6 @@ Current development configs:
 - `lichess_2026_05_2000plus_epoch20_cached_batchmetrics.yaml`: cached 20-epoch
   rerun over the May 2026 Lichess 2000+ filtered dataset with batch-level loss
   metrics enabled.
+- `lichess_2026_05_2000plus_resnet_b_epoch20_cached_batchmetrics.yaml`: cached
+  20-epoch ResNet-B run over the same May 2026 Lichess 2000+ filtered dataset,
+  seed, and optimizer settings as the ResNet-A batch-metrics run.
