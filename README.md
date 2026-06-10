@@ -116,7 +116,7 @@ PGN games
 Implemented:
 
 - ResNet policy/value model
-- named ResNet presets: `resnet_baseline` and `resnet_b`
+- named ResNet presets: `resnet_a` and `resnet_b`
 
 Planned ablations:
 

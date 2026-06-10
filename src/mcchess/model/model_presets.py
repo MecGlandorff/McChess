@@ -1,49 +1,19 @@
-"""Named policy/value model presets."""
+"""Model preset registry. Each preset is defined in its own module."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from types import MappingProxyType
 
-from mcchess.model.network import PolicyValueResNet, ResNetConfig
+from mcchess.model.network import PolicyValueResNet
+from mcchess.model.preset import ModelPreset
+from mcchess.model.resnet_a import RESNET_A
+from mcchess.model.resnet_b import RESNET_B
 
-
-@dataclass(frozen=True)
-class ModelPreset:
-    """Named model configuration for reproducible architecture comparisons."""
-
-    name: str
-    family: str
-    config: ResNetConfig
-    description: str
-
-    def build(self) -> PolicyValueResNet:
-        """Build the model described by this preset."""
-
-        if self.family != "resnet":
-            raise ValueError(f"unsupported model family: {self.family}")
-        return PolicyValueResNet(self.config)
-
-
-RESNET_BASELINE = ModelPreset(
-    name="resnet_baseline",
-    family="resnet",
-    config=ResNetConfig(),
-    description="Existing single-board ResNet default.",
-)
-
-RESNET_B = ModelPreset(
-    name="resnet_b",
-    family="resnet",
-    config=ResNetConfig(channels=64, num_blocks=6, value_hidden_dim=128),
-    description="Deeper compact single-board ResNet for the next controlled baseline.",
-)
-
-_CANONICAL_PRESETS = (RESNET_BASELINE, RESNET_B)
+_CANONICAL_PRESETS = (RESNET_A, RESNET_B)
 _MODEL_PRESETS_BY_NAME = MappingProxyType(
     {
-        RESNET_BASELINE.name: RESNET_BASELINE,
-        "baseline": RESNET_BASELINE,
+        RESNET_A.name: RESNET_A,
+        "resnet-a": RESNET_A,
         RESNET_B.name: RESNET_B,
         "resnet-b": RESNET_B,
     }
