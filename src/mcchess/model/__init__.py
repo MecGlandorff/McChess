@@ -9,8 +9,8 @@ from mcchess.model.checkpoint import (
 from mcchess.model.loss import PolicyValueLoss, policy_value_loss
 from mcchess.model.network import PolicyValueResNet, ResNetConfig, ResidualBlock
 from mcchess.model.model_presets import (
+    RESNET_A,
     RESNET_B,
-    RESNET_BASELINE,
     ModelPreset,
     available_model_presets,
     build_model_from_preset,
@@ -23,8 +23,8 @@ __all__ = [
     "ModelPreset",
     "PolicyValueLoss",
     "PolicyValueResNet",
+    "RESNET_A",
     "RESNET_B",
-    "RESNET_BASELINE",
     "ResNetConfig",
     "ResidualBlock",
     "available_model_presets",

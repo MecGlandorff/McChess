@@ -24,7 +24,7 @@ Current implementation:
 - `src/mcchess/model/network.py`
 - class: `PolicyValueResNet`
 - config: `ResNetConfig`
-- presets: `resnet_baseline`, `resnet_b`
+- presets: `resnet_a`, `resnet_b`
 
 Input:
 
@@ -54,9 +54,11 @@ value: [batch]
 
 Packaged presets:
 
-- `resnet_baseline`: the existing default `ResNetConfig()` single-board model.
+- `resnet_a`: the default `ResNetConfig()` single-board model.
 - `resnet_b`: a deeper compact single-board baseline with `channels=64`,
   `num_blocks=6`, and `value_hidden_dim=128`.
+- `resnet_c` (planned): adds BatchNorm and related training refinements as a
+  measured ablation on top of the deliberately minimal baselines.
 
 `resnet_b` is a model package for controlled follow-up training and ablation. It
 has no reported result until trained and evaluated under the project protocol.

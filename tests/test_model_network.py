@@ -3,6 +3,7 @@ import torch
 
 from mcchess.board import BOARD_PLANE_COUNT, POLICY_SIZE
 from mcchess.model import (
+    RESNET_A,
     RESNET_B,
     PolicyValueResNet,
     ResNetConfig,
@@ -82,7 +83,8 @@ def test_resnet_b_preset_has_policy_value_contract() -> None:
 
 
 def test_model_preset_lookup_uses_canonical_names_and_aliases() -> None:
-    assert available_model_presets() == ("resnet_baseline", "resnet_b")
+    assert available_model_presets() == ("resnet_a", "resnet_b")
+    assert get_model_preset("resnet-a") is RESNET_A
     assert get_model_preset("resnet_b") is RESNET_B
     assert get_model_preset("resnet-b") is RESNET_B
 

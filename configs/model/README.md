@@ -4,8 +4,7 @@ Model architecture configs belong here.
 
 Current built-in presets are exported by `mcchess.model`:
 
-- `resnet_baseline`: existing default single-board `PolicyValueResNet`
-  configuration.
+- `resnet_a`: default single-board `PolicyValueResNet` configuration.
 - `resnet_b`: deeper single-board ResNet with `channels=64`, `num_blocks=6`,
   and `value_hidden_dim=128`.
 
