@@ -1,5 +1,8 @@
 # McChess
 
+[![CI](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A compact neural chess research system trained without Stockfish, Syzygy, or external engine labels.
 
 McChess currently has a working supervised-learning path: chess-rule contracts,
@@ -280,3 +283,7 @@ loss improving before mild late overfitting. This run is very far from an actual
 - runtime: `357.7s` total on MPS
 
 This is not a strength result and is not a reportable experiment.
+
+## License
+
+McChess is released under the MIT License. See [LICENSE](LICENSE).
