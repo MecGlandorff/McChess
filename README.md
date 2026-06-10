@@ -266,22 +266,31 @@ The project keeps technical contracts and reproducibility rules in:
 
 Reportable results should include configs, seeds, manifests, checkpoints, metrics, and evaluation metadata. Weak, failed, and inconclusive runs should be documented when they answer a research question or expose a limitation.
 
-## Early Smoke Reports
+## Current Supervised Runs
 
-Development-only reports live in `reports/`. The first extended validation run
-shows that the current model, loader, loss, metrics, checkpoint, and plot path
-work end to end on the full local 1,000-game very small Lichess sample, with validation
-loss improving before mild late overfitting. This run is very far from an actual training run. 
+The first matched ResNet-A vs ResNet-B comparison is running on the May 2026
+2000+ Lichess dataset: 73,553,382 train positions, 747,498 validation
+positions, batch size 2048, AdamW with learning rate `5e-4`, seed `20260501`,
+CUDA with the tensor cache.
 
-![Extended validation loss curve](reports/assets/validation_extended_loss_curve.svg)
+| Run | Model | Params | Epochs | Val total loss | Final val policy loss |
+|---|---|---:|---:|---:|---:|
+| ResNet-A | 32 channels, 1 block | ~0.63M | 20 of 20 | `3.3176 -> 3.0549` | `2.1960` |
+| ResNet-B | `resnet_b`: 64 channels, 6 blocks | ~1.06M | 16 of 20 | `2.8403 -> 2.5603` | `1.7199` |
 
-- `reports/2026-06-01-tiny-loss-smoke.md`
-- train total loss: `7.7169 -> 3.5878` over 25 local epochs
-- validation total loss: `7.3424 -> 5.9418` at best epoch 13
-- final validation total loss: `6.2109` at epoch 25
-- runtime: `357.7s` total on MPS
+ResNet-B is still training as of 2026-06-11 at roughly 80 to 90 minutes per
+epoch; its numbers are through epoch 16. Under matched data, seed, and
+optimizer settings, ResNet-B's epoch-1 validation total loss (`2.8403`) is
+already below ResNet-A's final epoch-20 loss (`3.0549`).
 
-This is not a strength result and is not a reportable experiment.
+![ResNet-A loss curve](reports/assets/lichess_2026_05_resnet_a_loss_curve.svg)
+
+![ResNet-B loss curve](reports/assets/lichess_2026_05_resnet_b_loss_curve.svg)
+
+These are loss metrics only. No arena or play-strength evaluation has been run
+for these checkpoints, and the comparison becomes a reportable result only
+after the ResNet-B run completes. Older development smoke reports live in
+`reports/`.
 
 ## License
 

@@ -1,0 +1,19 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="820" height="460" viewBox="0 0 820 460">
+  <rect width="100%" height="100%" fill="#ffffff" />
+  <text x="410.0" y="22" text-anchor="middle" font-size="16" font-family="Arial, sans-serif" fill="#111827">ResNet-A May 2026 Supervised Loss (20 epochs)</text>
+  <g font-family="Arial, sans-serif">
+    <line x1="70" y1="30.0" x2="792" y2="30.0" stroke="#e5e7eb" /><text x="60" y="34.0" text-anchor="end" font-size="12" fill="#374151">3.69</text><line x1="70" y1="104.0" x2="792" y2="104.0" stroke="#e5e7eb" /><text x="60" y="108.0" text-anchor="end" font-size="12" fill="#374151">3.55</text><line x1="70" y1="178.0" x2="792" y2="178.0" stroke="#e5e7eb" /><text x="60" y="182.0" text-anchor="end" font-size="12" fill="#374151">3.42</text><line x1="70" y1="252.0" x2="792" y2="252.0" stroke="#e5e7eb" /><text x="60" y="256.0" text-anchor="end" font-size="12" fill="#374151">3.28</text><line x1="70" y1="326.0" x2="792" y2="326.0" stroke="#e5e7eb" /><text x="60" y="330.0" text-anchor="end" font-size="12" fill="#374151">3.14</text><line x1="70" y1="400.0" x2="792" y2="400.0" stroke="#e5e7eb" /><text x="60" y="404.0" text-anchor="end" font-size="12" fill="#374151">3.01</text>
+    <line x1="70" y1="30" x2="70" y2="400" stroke="#111827" />
+    <line x1="70" y1="400" x2="792" y2="400" stroke="#111827" />
+    <text x="70.0" y="432" text-anchor="middle" font-size="12" fill="#374151">1</text><text x="222.0" y="432" text-anchor="middle" font-size="12" fill="#374151">5</text><text x="412.0" y="432" text-anchor="middle" font-size="12" fill="#374151">10</text><text x="602.0" y="432" text-anchor="middle" font-size="12" fill="#374151">15</text><text x="792.0" y="432" text-anchor="middle" font-size="12" fill="#374151">20</text>
+    <text x="410.0" y="452" text-anchor="middle" font-size="13" fill="#111827">Epoch</text>
+    <text x="18" y="230.0" transform="rotate(-90 18 230.0)" text-anchor="middle" font-size="13" fill="#111827">Total loss</text>
+    <polyline points="70.0,55.5 108.0,256.1 146.0,288.3 184.0,306.2 222.0,318.4 260.0,328.0 298.0,335.7 336.0,341.8 374.0,346.8 412.0,351.0 450.0,354.5 488.0,357.6 526.0,360.3 564.0,362.6 602.0,364.6 640.0,366.5 678.0,368.2 716.0,369.7 754.0,371.1 792.0,372.3" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+    <polyline points="70.0,231.5 108.0,276.1 146.0,295.5 184.0,314.1 222.0,320.8 260.0,331.4 298.0,336.7 336.0,344.0 374.0,348.5 412.0,353.6 450.0,356.3 488.0,356.0 526.0,363.4 564.0,365.5 602.0,359.0 640.0,360.0 678.0,367.0 716.0,369.3 754.0,371.4 792.0,374.5" fill="none" stroke="#dc2626" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+    <rect x="615" y="42" width="160" height="52" fill="#ffffff" stroke="#d1d5db" />
+    <line x1="630" y1="62" x2="662" y2="62" stroke="#2563eb" stroke-width="3" />
+    <text x="672" y="66" font-size="12" fill="#111827">train total</text>
+    <line x1="630" y1="82" x2="662" y2="82" stroke="#dc2626" stroke-width="3" />
+    <text x="672" y="86" font-size="12" fill="#111827">val total</text>
+  </g>
+</svg>
