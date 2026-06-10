@@ -118,6 +118,12 @@ Implemented:
 - ResNet policy/value model
 - named ResNet presets: `resnet_a` and `resnet_b`
 
+The current presets are deliberately minimal: no normalization layers and no
+modern ResNet training refinements. This is intentional, so that each
+refinement lands as a measured ablation on top of a solid baseline instead of
+an unexamined default. The next preset, `resnet_c`, will add normalization
+(BatchNorm) and related refinements under the same matched-training protocol.
+
 Planned ablations:
 
 - optional NNUE-style sparse accumulator
