@@ -8,7 +8,7 @@ import pytest
 import torch
 
 from mcchess.board import BOARD_PLANE_COUNT, POLICY_SIZE, move_to_index
-from mcchess.bots import MaterialBot, NoLegalMoveError, PolicyOnlyBot, RandomLegalBot
+from mcchess.bots import MaterialBot, NegamaxBot, NoLegalMoveError, PolicyOnlyBot, RandomLegalBot
 from mcchess.bots.notebook import NotebookChessGame, create_notebook_game
 from mcchess.model import (
     CheckpointMetadata,
@@ -71,6 +71,50 @@ def test_material_bot_prefers_available_queen_capture() -> None:
     assert captured is not None
     assert captured.piece_type == chess.QUEEN
     assert move in board.legal_moves
+
+
+def test_negamax_bot_finds_mate_in_one() -> None:
+    board = chess.Board("6k1/5ppp/8/8/8/8/8/R6K w - - 0 1")
+
+    move = NegamaxBot(depth=2).choose_move(board)
+
+    board.push(move)
+    assert board.is_checkmate()
+
+
+def test_negamax_bot_avoids_capture_that_material_bot_takes() -> None:
+    board = chess.Board("4k3/8/4p3/3p4/8/8/8/3QK3 w - - 0 1")
+    losing_capture = chess.Move.from_uci("d1d5")
+
+    assert MaterialBot().choose_move(board) == losing_capture
+    assert NegamaxBot(depth=2).choose_move(board) != losing_capture
+
+
+def test_negamax_bot_is_deterministic() -> None:
+    board = chess.Board()
+
+    move_a = NegamaxBot(depth=2).choose_move(board)
+    move_b = NegamaxBot(depth=2).choose_move(board)
+
+    assert move_a == move_b
+    assert move_a in board.legal_moves
+
+
+def test_negamax_bot_plays_legal_moves_through_a_game() -> None:
+    board = chess.Board()
+    bot = NegamaxBot(depth=2)
+
+    for _ in range(12):
+        if board.is_game_over():
+            break
+        move = bot.choose_move(board)
+        assert move in board.legal_moves
+        board.push(move)
+
+
+def test_negamax_bot_rejects_invalid_depth() -> None:
+    with pytest.raises(ValueError):
+        NegamaxBot(depth=0)
 
 
 class FakePolicyModel:

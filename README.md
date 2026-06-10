@@ -25,14 +25,13 @@ Implemented:
 - PyTorch dataset support for JSONL shards and tensor caches
 - compact ResNet policy/value model with supervised loss
 - supervised training script with epoch/batch metrics, per-epoch checkpoints, and plots
-- checkpoint loading plus initial random, material, and policy-only bots
+- checkpoint loading plus random, material, negamax alpha-beta, and policy-only bots
 - clickable notebook play helper for policy-only checkpoints
 - local data, training, and smoke-test configs
 - tests for chess/tensor contracts, data processing, model shapes, losses, and scripts
 
 Not yet implemented:
 
-- remaining handmade baselines such as shallow minimax
 - arena evaluation
 - neural MCTS
 - temporal and attention model families
@@ -132,7 +131,7 @@ Planned ablations:
 
 - random legal-move bot
 - material-count bot
-- shallow minimax bot
+- negamax alpha-beta bot
 - policy-only neural bot
 - policy/value + MCTS bot
 
