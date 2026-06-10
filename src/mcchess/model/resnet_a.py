@@ -5,9 +5,9 @@ from __future__ import annotations
 from mcchess.model.network import ResNetConfig
 from mcchess.model.preset import ModelPreset
 
-RESNET_BASELINE = ModelPreset(
-    name="resnet_baseline",
+RESNET_A = ModelPreset(
+    name="resnet_a",
     family="resnet",
     config=ResNetConfig(),
-    description="Existing single-board ResNet default.",
+    description="Single-board ResNet default.",
 )
