@@ -3,6 +3,7 @@ name = "mcchess"
 version = "0.1.0"
 description = "A compact neural chess research system trained without engine labels."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "numpy",
