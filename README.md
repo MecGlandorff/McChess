@@ -3,32 +3,39 @@
 [![CI](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A compact neural chess research system trained without Stockfish, Syzygy, or external engine labels.
+McChess is a compact neural-chess research system: raw human PGNs in, explicit
+chess-rule tensors out, PyTorch policy/value checkpoints, reproducible metrics,
+and playable policy-only bots. It is built around one question:
 
-McChess currently has a working supervised-learning path: chess-rule contracts,
-PGN data processing, an 18-plane board encoder, compact policy/value ResNets,
-config-driven training, checkpoint loading, policy-only play, tests, and smoke
-reports. Search, arena evaluation, temporal/attention models, distillation, and
-self-play are planned next steps.
+> How far can a small neural chess agent go using human games, architectural
+> inductive bias, search, and self-play without engine supervision?
 
-## Current Status
+The project deliberately avoids Stockfish, Syzygy, Leela, tablebase labels,
+external best-move labels, and imported engine weights. `python-chess` owns the
+rules. Neural networks rank and evaluate positions only after legal move
+masking.
 
-Implemented:
+McChess is not a claim of engine strength. It is a research platform for clean
+ablations, honest evaluation, and compact neural search under limited compute.
 
-- repository foundation, Poetry environment, CI, and project documentation
-- 18-plane board tensor encoder backed by `python-chess`
-- fixed 4672-action policy space with move-index round trips
-- explicit legal move masking using `python-chess`
-- PGN reader with corrupt-game and unknown-result accounting
-- game-level dataset builder with JSONL shards and manifests
-- optional tensor cache for faster local training input pipelines
-- PyTorch dataset support for JSONL shards and tensor caches
-- compact ResNet policy/value model with supervised loss
-- supervised training script with epoch/batch metrics, per-epoch checkpoints, and plots
-- checkpoint loading plus random, material, negamax alpha-beta, and policy-only bots
-- clickable notebook play helper for policy-only checkpoints
-- local data, training, and smoke-test configs
-- tests for chess/tensor contracts, data processing, model shapes, losses, and scripts
+## What Works Now
+
+McChess already has the core supervised-learning stack needed for neural chess
+experiments:
+
+| Area | Current capability |
+|---|---|
+| Chess contracts | 18-plane `[18, 8, 8]` board tensors, side-to-move values, and a fixed 4,672-action policy space |
+| Legality | Explicit legal move masks from `python-chess`; the model is never trusted to learn legality |
+| Data | PGN streaming, corrupt/unknown-result accounting, game-level splits, JSONL shards, and manifests |
+| Training input | JSONL-backed datasets plus optional tensor caches for faster local CUDA training |
+| Models | Compact PyTorch policy/value ResNet presets: `resnet_a` and `resnet_b` |
+| Training | YAML-configured supervised training with epoch metrics, batch metrics, checkpoints, and loss plots |
+| Evaluation metrics | Legal-masked supervised top-k evaluation and value diagnostics via `scripts/eval_top1.py` |
+| Bots | Random, material, negamax alpha-beta, and policy-only checkpoint bots |
+| Play | Clickable notebook widget for playing a local policy-only checkpoint |
+| Reproducibility | Project invariants, dataset protocol, evaluation protocol, model card, configs, and CI checks |
+| Tests | Coverage for board encoding, move indexing, legal masks, PGNs, datasets, model shapes, losses, checkpoints, bots, and scripts |
 
 Not yet implemented:
 
@@ -38,68 +45,67 @@ Not yet implemented:
 - search distillation
 - self-play
 
-## Current Capabilities
+## Current Evidence
 
-| Area | Implemented capability |
+These are supervised-learning measurements only. They do not imply Elo,
+Lichess strength, or engine competitiveness.
+
+### Reported Baseline
+
+The first reportable supervised baseline in `RESULTS.md` trained a compact
+ResNet on a 600k-position prefix of Lichess 2013-01 and evaluated a 40k-position
+held-out test slice:
+
+| Experiment | Model | Legal top-1 | Legal top-3 | Legal top-5 | Value MSE |
+|---|---|---:|---:|---:|---:|
+| `supervised_resnet32x2_lichess2013_01` | ResNet 32ch x2, ~1.2M params | 0.262 | 0.492 | 0.610 | 0.858 |
+
+That run used human moves and final game results only. The raw unmasked argmax
+was legal for 88.8% of evaluated positions, which is useful evidence that the
+model learned board structure, but move selection still requires explicit legal
+masking.
+
+### Full-Data Supervised Runs
+
+The current matched ResNet-A vs ResNet-B comparison uses the May 2026 2000+
+Lichess dataset with 73,553,382 train positions and 747,498 validation
+positions. Both runs use batch size 2048, AdamW, learning rate `5e-4`, seed
+`20260501`, CUDA, and the tensor cache.
+
+| Run | Model | Params | Epochs | Validation total loss | Final validation policy loss | Status |
+|---|---|---:|---:|---:|---:|---|
+| ResNet-A | 32 channels, 1 block | ~0.63M | 20 of 20 | `3.3176 -> 3.0549` | `2.1960` | completed 2026-06-07 |
+| ResNet-B | 64 channels, 6 blocks | ~1.06M | 20 of 20 | `2.8403 -> 2.5447` | `1.7047` | completed 2026-06-11 |
+
+Under matched data, seed, and optimizer settings, ResNet-B's epoch-1 validation
+total loss (`2.8403`) was already below ResNet-A's final epoch-20 loss
+(`3.0549`). The final ResNet-B validation total loss was `2.5447`.
+
+![ResNet-A loss curve](reports/assets/lichess_2026_05_resnet_a_loss_curve.svg)
+
+![ResNet-B loss curve](reports/assets/lichess_2026_05_resnet_b_loss_curve.svg)
+
+No arena or play-strength evaluation has been run for these full-data
+checkpoints yet.
+
+## Core Contracts
+
+McChess keeps chess and tensor assumptions explicit so experiments do not drift.
+
+| Contract | Current value |
 |---|---|
-| Board representation | 18-plane `[planes, 8, 8]` encoder with side-to-move, castling, and legal en-passant metadata |
-| Move representation | Fixed `8 x 8 x 73 = 4672` policy space with legal move round-trip tests |
-| Legality | Explicit `python-chess` legal policy mask; the model is not trusted to infer legal moves |
-| Data pipeline | PGN streaming, final-result value targets, game-level splits, JSONL shards, dataset manifests |
-| Training input | JSONL-backed dataset plus optional encoded tensor cache for local throughput |
-| Model | Compact PyTorch ResNet presets returning `policy_logits: [batch, 4672]` and `value: [batch]` |
-| Training | Config-driven supervised training script with epoch/batch metrics, per-epoch checkpoints, and diagnostic plots |
-| Play | Policy-only checkpoint bot with explicit legal masking and clickable notebook play helper |
-| Reproducibility | YAML configs, dataset protocols, evaluation protocols, model card, invariants, and CI checks |
-| Validation | pytest coverage for board encoding, move indexing, legal masks, PGN handling, datasets, model outputs, losses, and scripts |
+| Board tensor | `[18, 8, 8]`, `float32` |
+| Batched input | `[batch, 18, 8, 8]` |
+| Policy space | `8 x 8 x 73 = 4672` |
+| Policy logits | `[batch, 4672]` |
+| Value output | `[batch]`, side-to-move perspective, bounded to `[-1, 1]` |
+| Legal mask | `[4672]`, `float32`, generated from `python-chess` |
+| Split rule | split by game, never by position |
 
-## Project Goal
+The source of truth for these contracts is `INVARIANTS.md`, with implementation
+details in `DESIGN.md`.
 
-McChess studies how far a small neural chess agent can go using:
-
-- human PGN supervised learning
-- board tensor encoding
-- legal move masking
-- policy/value neural networks
-- Monte Carlo Tree Search
-- temporal modeling
-- attention mechanisms
-- optional search distillation
-- optional self-play
-
-The goal is not to beat modern engines. The goal is to build a clean, reproducible research platform for neural chess search under limited compute.
-
-## Core Research Question
-
-How far can a compact neural chess engine go using only human games, architectural inductive biases, search, and self-play without engine supervision?
-
-## Research And Engineering Scope
-
-- deep learning fundamentals
-- chess board representation
-- move-indexing design
-- legal move masking
-- policy/value modeling
-- MCTS experiments
-- sequence-modeling experiments
-- attention-mechanism experiments
-- controlled ablation studies
-- reproducible evaluation
-- careful research engineering
-
-## Non-Goals
-
-This project does not use:
-
-- Stockfish labels
-- Leela labels
-- Syzygy tablebases
-- external engine evaluations
-- pretrained engine recommendations
-
-Strength claims need documented evaluations, not estimates.
-
-## System Overview
+## System Shape
 
 ```text
 PGN games
@@ -107,54 +113,160 @@ PGN games
   -> board tensors, policy targets, values   implemented
   -> policy/value ResNet                     implemented
   -> policy-only bot                         implemented
-  -> MCTS-enhanced bot                       future
   -> arena evaluation                        future
+  -> MCTS-enhanced bot                       future
+  -> history, attention, distillation        future
+  -> self-play                               future
 ```
 
-## Model Families
+The current supervised sample is:
 
-Implemented:
+```json
+{
+  "game_id": "g000000",
+  "ply": 0,
+  "fen": "rnbqkbnr/pppppppp/...",
+  "move_uci": "e2e4",
+  "policy_index": 748,
+  "value": 0.0,
+  "result": "1/2-1/2",
+  "split": "train"
+}
+```
 
-- ResNet policy/value model
-- named ResNet presets: `resnet_a` and `resnet_b`
-
-The current presets are deliberately minimal: no normalization layers and no
-modern ResNet training refinements. This is intentional, so that each
-refinement lands as a measured ablation on top of a solid baseline instead of
-an unexamined default. The next preset, `resnet_c`, will add normalization
-(BatchNorm) and related refinements under the same matched-training protocol.
-
-Planned ablations:
-
-- optional NNUE-style sparse accumulator
-- History ResNet
-- ResNet + square attention
-- LSTM history
-- LSTM + temporal attention
-- Temporal Transformer
-
-## Future Evaluation Baselines
-
-- random legal-move bot
-- material-count bot
-- negamax alpha-beta bot
-- policy-only neural bot
-- policy/value + MCTS bot
+Training artifacts include copied configs, metrics JSONL, batch metrics JSONL,
+status files, checkpoints, and plots.
 
 ## Repository Map
 
 - `src/mcchess/board/`: board tensors, move indexing, and legal masks
 - `src/mcchess/data/`: PGN parsing, dataset shards, tensor caches, and PyTorch datasets
-- `src/mcchess/model/`: policy/value ResNets, model presets, and supervised losses
-- `scripts/`: dataset building, tensor-cache building, data download, and supervised training
-- `configs/`: reproducible data and training configurations
-- `tests/`: chess-rule, data, model-shape, loss, and script tests
-- `docs/`: architecture notes, coding standard, dataset protocol, and evaluation protocol
-- `reports/`: development smoke reports and diagnostic plots
+- `src/mcchess/model/`: policy/value ResNets, presets, checkpoints, and supervised losses
+- `src/mcchess/bots/`: baseline bots and policy-only checkpoint play
+- `scripts/`: dataset building, data filtering/downloading, tensor-cache building, training, and top-k evaluation
+- `configs/`: reproducible data, training, evaluation, and future self-play configs
+- `tests/`: chess-rule, data, model-shape, loss, checkpoint, bot, and script tests
+- `docs/`: architecture notes, coding standard, dataset protocol, evaluation protocol, and guides
+- `reports/`: development reports and diagnostic plots
 
-## Validation Snapshot
+## Setup
 
-The test suite covers board orientation, piece planes, castling metadata, legal en-passant encoding, move-index round trips, legal policy masks, PGN parsing, corrupt and unknown-result game handling, game-level dataset splits, tensor cache loading, model output shapes, finite outputs, supervised loss computation, and training-script smoke behavior.
+McChess uses Poetry with Python 3.11+.
+
+```bash
+poetry env use python3.12
+poetry install --with dev,notebook
+poetry run python --version
+```
+
+This repository includes `poetry.toml`, so Poetry creates the virtual
+environment at `.venv/`.
+
+If Poetry picks up an old Conda Python, deactivate Conda first:
+
+```bash
+conda deactivate
+poetry env use python3.12
+poetry install --with dev,notebook
+```
+
+Run the standard checks:
+
+```bash
+poetry run pytest
+poetry run ruff check .
+poetry run mypy src
+```
+
+GitHub Actions runs `poetry check`, `pytest`, `ruff`, and `mypy` on push and
+pull request.
+
+## Local Workflows
+
+Useful guides:
+
+- `docs/guides/INSTALL_DATA.md`
+- `docs/guides/GPU_POWER_LIMIT.md`
+- `docs/guides/HOW_TO_PLAY.md`
+
+Build or filter datasets through the scripts in `scripts/` and the YAML configs
+under `configs/`. Large CUDA runs can use the optional tensor cache documented
+in `docs/DATASET_PROTOCOL.md`.
+
+Start notebooks through Poetry:
+
+```bash
+poetry run jupyter nbclassic
+```
+
+To play a policy-only checkpoint locally:
+
+```powershell
+New-Item -ItemType Directory -Force .local\jupyter\nbclassic-runtime, .local\ipython | Out-Null
+$env:JUPYTER_RUNTIME_DIR = "$PWD\.local\jupyter\nbclassic-runtime"
+$env:IPYTHONDIR = "$PWD\.local\ipython"
+poetry run jupyter nbclassic --no-browser --notebook-dir="$PWD" --port=8888 --ServerApp.token=mcchess
+```
+
+Then open `notebooks/play_policy_bot.ipynb` with the `McChess (.venv)` kernel.
+The notebook is a manual inspection tool, not an arena evaluation or a
+strength result.
+
+GPU power limiting for NVIDIA cards can be toggled around CUDA training runs:
+
+```powershell
+poetry run python gpu_protect --status
+poetry run python gpu_protect --on
+poetry run python gpu_protect --off
+```
+
+The limiter only matters when training resolves to `device=cuda`.
+
+## Research Boundaries
+
+Allowed supervision:
+
+- human PGN games
+- final game results
+- self-play games generated by this project
+- MCTS visit counts generated by this project's own model
+
+Disallowed supervision:
+
+- Stockfish evaluations or best moves
+- Leela evaluations or best moves
+- Syzygy tablebases
+- external engine labels
+- imported engine weights or pretrained chess-engine policy/value targets
+
+Strength claims require documented evaluation. Preferred:
+
+```text
+In local arena config X, checkpoint Y scored Z over N games against baseline B.
+```
+
+Unsupported:
+
+```text
+McChess is 2000 Elo.
+McChess is close to leading engines.
+McChess is stronger than Stockfish.
+```
+
+## Roadmap
+
+The next milestones are intentionally narrow:
+
+1. Add reproducible arena evaluation with alternating colors, seeds, max-ply
+   limits, W/D/L counts, and illegal-move accounting.
+2. Add neural MCTS with legal expansion, masked priors, terminal handling, and
+   backup sign-flip tests.
+3. Compare policy-only and MCTS play under fixed budgets.
+4. Add history and attention architectures as matched ablations.
+5. Test search distillation and optional self-play only after the arena and MCTS
+   protocols are stable.
+
+The full milestone list is in `ROADMAP.md`.
 
 ## Development Philosophy
 
@@ -170,133 +282,12 @@ Prioritize:
 
 Avoid:
 
-- overbuilding early
 - hidden engine supervision
 - unsupported Elo claims
-- giant untested code dumps
+- future milestone code mixed into current work
+- giant untested rewrites
 
-The project coding standard is documented in `docs/CODING_STANDARD.md`. In
-short: keep the code compact and hackable, make chess/tensor contracts explicit,
-prefer simple functions plus dataclasses, use Poetry and reproducible YAML
-configs, and test every public chess or model-shape contract.
-
-## Setup
-
-This project uses Poetry with Python 3.11+.
-
-Recommended local setup:
-
-```bash
-poetry env use python3.12
-poetry install --with dev,notebook
-```
-
-This repository includes `poetry.toml`, so Poetry creates the virtual environment at `.venv/`.
-
-If Poetry complains that the current Python is `3.9.x`, deactivate Conda first:
-
-```bash
-conda deactivate
-poetry env use python3.12
-poetry install --with dev,notebook
-```
-
-Verify the interpreter:
-
-```bash
-poetry run python --version
-```
-
-## Data And Local Training Guides
-
-Useful local workflow guides:
-
-- `docs/guides/INSTALL_DATA.md`
-- `docs/guides/GPU_POWER_LIMIT.md`
-- `docs/guides/HOW_TO_PLAY.md`
-
-GPU power limiting for NVIDIA cards can be toggled around CUDA training runs:
-
-```powershell
-poetry run python gpu_protect --status
-poetry run python gpu_protect --on
-poetry run python gpu_protect --off
-```
-
-The limiter only matters when training resolves to `device=cuda`.
-
-Run checks through Poetry:
-
-```bash
-poetry run pytest
-poetry run ruff check .
-poetry run mypy src
-```
-
-GitHub Actions CI runs `poetry check`, `pytest`, `ruff`, and `mypy` on push and pull request.
-
-Start notebooks through Poetry:
-
-```bash
-poetry run jupyter nbclassic
-```
-
-Play against a local policy checkpoint in the notebook:
-
-```powershell
-New-Item -ItemType Directory -Force .local\jupyter\nbclassic-runtime | Out-Null
-$env:JUPYTER_RUNTIME_DIR = "$PWD\.local\jupyter\nbclassic-runtime"
-poetry run jupyter nbclassic --no-browser --notebook-dir="$PWD" --port=8888 --ServerApp.token=mcchess
-```
-
-Then open `notebooks/play_policy_bot.ipynb` and select the `McChess (.venv)`
-kernel. See `docs/guides/HOW_TO_PLAY.md` for setup, expected behavior, and
-troubleshooting.
-
-Current smoke notebooks:
-
-- `notebooks/encoding_smoke_test.ipynb`
-- `notebooks/move_indexing_smoke_test.ipynb`
-- `notebooks/dataset_builder_smoke_test.ipynb`
-- `notebooks/play_policy_bot.ipynb`
-
-## Research Discipline
-
-The project keeps technical contracts and reproducibility rules in:
-
-- `INVARIANTS.md`
-- `REPRODUCIBILITY.md`
-- `docs/DATASET_PROTOCOL.md`
-- `docs/EVALUATION_PROTOCOL.md`
-- `EXPERIMENTS.md`
-
-Reportable results should include configs, seeds, manifests, checkpoints, metrics, and evaluation metadata. Weak, failed, and inconclusive runs should be documented when they answer a research question or expose a limitation.
-
-## Current Supervised Runs
-
-The first matched ResNet-A vs ResNet-B comparison is running on the May 2026
-2000+ Lichess dataset: 73,553,382 train positions, 747,498 validation
-positions, batch size 2048, AdamW with learning rate `5e-4`, seed `20260501`,
-CUDA with the tensor cache.
-
-| Run | Model | Params | Epochs | Val total loss | Final val policy loss |
-|---|---|---:|---:|---:|---:|
-| ResNet-A | 32 channels, 1 block | ~0.63M | 20 of 20 | `3.3176 -> 3.0549` | `2.1960` |
-| ResNet-B | `resnet_b`: 64 channels, 6 blocks | ~1.06M | 16 of 20 | `2.8403 -> 2.5603` | `1.7199` |
-
-ResNet-B is still training as of 2026-06-11 at roughly 80 to 90 minutes per
-epoch; its numbers are through epoch 16. Under matched data, seed, and
-optimizer settings, ResNet-B's epoch-1 validation total loss (`2.8403`) is
-already below ResNet-A's final epoch-20 loss (`3.0549`).
-
-![ResNet-A loss curve](reports/assets/lichess_2026_05_resnet_a_loss_curve.svg)
-
-![ResNet-B loss curve](reports/assets/lichess_2026_05_resnet_b_loss_curve.svg)
-
-These are loss metrics only. No arena or play-strength evaluation has been run
-for these checkpoints, and the comparison becomes a reportable result only
-after the ResNet-B run completes. Older development smoke reports live in
-`reports/`.
+The project coding standard is documented in `docs/CODING_STANDARD.md`.
 
 ## License
 
