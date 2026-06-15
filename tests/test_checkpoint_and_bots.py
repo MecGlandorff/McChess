@@ -9,17 +9,29 @@ import torch
 
 from mcchess.board import BOARD_PLANE_COUNT, POLICY_SIZE, move_to_index
 from mcchess.bots import MaterialBot, NegamaxBot, NoLegalMoveError, PolicyOnlyBot, RandomLegalBot
-from mcchess.bots.notebook import NotebookChessGame, create_notebook_game
+from mcchess.bots.notebook import (
+    BOARD_SQUARE_SIZE,
+    LAST_MOVE_DARK_COLOR,
+    ClickableChessBoard,
+    NotebookChessGame,
+)
 from mcchess.model import (
     CheckpointMetadata,
     LoadedPolicyValueCheckpoint,
     PolicyValueResNet,
     ResNetConfig,
+    find_best_policy_value_checkpoint,
     load_policy_value_checkpoint,
 )
 
 
-def write_checkpoint(path: Path, config: ResNetConfig) -> None:
+def write_checkpoint(
+    path: Path,
+    config: ResNetConfig,
+    *,
+    metrics: dict[str, float] | None = None,
+    completed_at: str | None = "2026-06-06T00:01:00+00:00",
+) -> None:
     model = PolicyValueResNet(config)
     torch.save(
         {
@@ -27,9 +39,9 @@ def write_checkpoint(path: Path, config: ResNetConfig) -> None:
             "model_config": config.__dict__,
             "train_config": {"seed": 11},
             "epoch": 3,
-            "metrics": {"val_total_loss": 1.25},
+            "metrics": {"val_total_loss": 1.25} if metrics is None else metrics,
             "saved_at": "2026-06-06T00:00:00+00:00",
-            "completed_at": "2026-06-06T00:01:00+00:00",
+            "completed_at": completed_at,
         },
         path,
     )
@@ -50,6 +62,46 @@ def test_load_policy_value_checkpoint_restores_model(tmp_path: Path) -> None:
     assert value.shape == (2,)
     assert torch.isfinite(policy_logits).all()
     assert torch.isfinite(value).all()
+
+
+def test_find_best_policy_value_checkpoint_uses_lowest_validation_loss(tmp_path: Path) -> None:
+    config = ResNetConfig(channels=4, num_blocks=1, value_hidden_dim=8)
+    run_a = tmp_path / "run_a"
+    run_b = tmp_path / "run_b"
+    run_a.mkdir()
+    run_b.mkdir()
+    write_checkpoint(run_a / "checkpoint_latest.pt", config, metrics={"val_total_loss": 1.5})
+    write_checkpoint(run_b / "checkpoint_latest.pt", config, metrics={"val_total_loss": 0.75})
+
+    selected = find_best_policy_value_checkpoint(tmp_path)
+
+    assert selected == run_b / "checkpoint_latest.pt"
+
+
+def test_find_best_policy_value_checkpoint_falls_back_to_newest_completed(
+    tmp_path: Path,
+) -> None:
+    config = ResNetConfig(channels=4, num_blocks=1, value_hidden_dim=8)
+    older_run = tmp_path / "older"
+    newer_run = tmp_path / "newer"
+    older_run.mkdir()
+    newer_run.mkdir()
+    write_checkpoint(
+        older_run / "checkpoint.pt",
+        config,
+        metrics={},
+        completed_at="2026-06-01T00:00:00+00:00",
+    )
+    write_checkpoint(
+        newer_run / "checkpoint.pt",
+        config,
+        metrics={},
+        completed_at="2026-06-02T00:00:00+00:00",
+    )
+
+    selected = find_best_policy_value_checkpoint(tmp_path)
+
+    assert selected == newer_run / "checkpoint.pt"
 
 
 def test_random_legal_bot_is_seeded_and_legal() -> None:
@@ -179,36 +231,96 @@ class ScriptedBot:
         return move
 
 
-def test_notebook_game_accepts_click_move_and_bot_reply() -> None:
+def test_notebook_game_applies_human_move_and_bot_reply() -> None:
     game = NotebookChessGame(bot=ScriptedBot(["e7e5"]), human_color=chess.WHITE)
 
-    game.click_square("e2")
-    game.click_square("e4")
+    game.play("e4")
 
     assert [move.uci() for move in game.board.move_stack] == ["e2e4", "e7e5"]
-    assert game.board.piece_at(chess.E2) is None
     assert game.board.piece_at(chess.E4) == chess.Piece(chess.PAWN, chess.WHITE)
-    assert game.board.piece_at(chess.E7) is None
     assert game.board.piece_at(chess.E5) == chess.Piece(chess.PAWN, chess.BLACK)
-    assert game._buttons[chess.E2].description == ""
-    assert game._buttons[chess.E4].description == chess.Piece(chess.PAWN, chess.WHITE).unicode_symbol()
-    assert game._buttons[chess.E7].description == ""
-    assert game._buttons[chess.E5].description == chess.Piece(chess.PAWN, chess.BLACK).unicode_symbol()
 
 
-def test_notebook_game_illegal_click_does_not_mutate_board() -> None:
+def test_notebook_game_accepts_san_and_uci() -> None:
+    game = NotebookChessGame(bot=ScriptedBot(["e7e5", "b8c6"]), human_color=chess.WHITE)
+
+    game.play("e2e4")
+    game.play("Nf3")
+
+    assert [move.uci() for move in game.board.move_stack] == ["e2e4", "e7e5", "g1f3", "b8c6"]
+
+
+def test_notebook_game_illegal_move_does_not_mutate_board() -> None:
     game = NotebookChessGame(bot=ScriptedBot(["e7e5"]), human_color=chess.WHITE)
     initial_fen = game.board.fen()
 
-    game.click_square("e3")
+    game.play("Ke2")
+    game.play("not a move")
+
     assert game.board.fen() == initial_fen
 
-    game.click_square("e2")
-    game.click_square("e5")
+
+def test_notebook_game_bot_moves_first_when_human_plays_black() -> None:
+    game = NotebookChessGame(bot=ScriptedBot(["e2e4"]), human_color=chess.BLACK)
+
+    assert [move.uci() for move in game.board.move_stack] == ["e2e4"]
+
+
+def test_notebook_game_renders_board_as_svg() -> None:
+    game = NotebookChessGame(bot=ScriptedBot(["e7e5"]), human_color=chess.WHITE)
+
+    game.play("e4")
+
+    assert game._repr_svg_().startswith("<svg")
+
+
+def test_clickable_board_applies_clicks_and_bot_reply() -> None:
+    game = NotebookChessGame(bot=ScriptedBot(["e7e5"]), human_color=chess.WHITE)
+    ui = ClickableChessBoard(game)
+    grid_children = tuple(ui.widget.children[1].children)
+    e2_button = ui._buttons[chess.E2]
+    assert e2_button.layout.width == BOARD_SQUARE_SIZE
+    assert e2_button.layout.height == BOARD_SQUARE_SIZE
+
+    ui.click_square("e2")
+    ui.click_square("e4")
+
+    assert [move.uci() for move in game.board.move_stack] == ["e2e4", "e7e5"]
+    assert tuple(ui.widget.children[1].children) == grid_children
+    assert ui._buttons[chess.E2] is e2_button
+    # Vacated squares must not be ""; the widget frontend skips repainting
+    # buttons with an empty description, leaving the old piece glyph visible.
+    assert ui._buttons[chess.E2].description == " "
+    assert ui._buttons[chess.E7].description == " "
+    assert ui._buttons[chess.E2].icon == ""
+    assert ui._buttons[chess.E7].icon == ""
+    assert ui._buttons[chess.E7].style.button_color == LAST_MOVE_DARK_COLOR
+    assert ui._buttons[chess.E5].style.button_color == LAST_MOVE_DARK_COLOR
+    assert "mcchess-white-piece" in ui._buttons[chess.E4]._dom_classes
+    assert "mcchess-black-piece" in ui._buttons[chess.E5]._dom_classes
+    assert ui._buttons[chess.E4].description == chess.Piece(chess.PAWN, chess.WHITE).unicode_symbol()
+    assert ui._buttons[chess.E5].description == chess.Piece(chess.PAWN, chess.BLACK).unicode_symbol()
+
+
+def test_clickable_board_illegal_target_does_not_mutate_board() -> None:
+    game = NotebookChessGame(bot=ScriptedBot(["e7e5"]), human_color=chess.WHITE)
+    ui = ClickableChessBoard(game)
+    initial_fen = game.board.fen()
+
+    ui.click_square("e3")
+    assert game.board.fen() == initial_fen
+
+    ui.click_square("e2")
+    ui.click_square("e5")
     assert game.board.fen() == initial_fen
 
 
-def test_create_notebook_game_returns_widget() -> None:
-    widget = create_notebook_game(ScriptedBot(["e7e5"]), human_color=chess.WHITE)
+def test_clickable_board_reselects_when_clicking_own_piece() -> None:
+    game = NotebookChessGame(bot=ScriptedBot(["e7e5"]), human_color=chess.WHITE)
+    ui = ClickableChessBoard(game)
 
-    assert hasattr(widget, "children")
+    ui.click_square("e2")
+    ui.click_square("d2")
+    ui.click_square("d4")
+
+    assert [move.uci() for move in game.board.move_stack] == ["d2d4", "e7e5"]

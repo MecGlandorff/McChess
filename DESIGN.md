@@ -254,9 +254,9 @@ the current board, runs the policy head, masks illegal moves with
 `legal_policy_mask(board)`, and chooses the highest-logit legal move. It does
 not use MCTS or the value head for move selection.
 
-The notebook play helper provides a click-source, click-target board for local
-inspection. It is an interactive debugging aid, not an arena evaluation or
-strength result.
+The notebook play helper provides a click-to-move ipywidgets board whose
+buttons are built once and mutated in place after each move. It is an
+interactive debugging aid, not an arena evaluation or strength result.
 
 ## Model Families
 

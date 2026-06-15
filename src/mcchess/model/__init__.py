@@ -3,6 +3,7 @@
 from mcchess.model.checkpoint import (
     CheckpointMetadata,
     LoadedPolicyValueCheckpoint,
+    find_best_policy_value_checkpoint,
     load_policy_value_checkpoint,
     resolve_torch_device,
 )
@@ -29,6 +30,7 @@ __all__ = [
     "ResidualBlock",
     "available_model_presets",
     "build_model_from_preset",
+    "find_best_policy_value_checkpoint",
     "get_model_preset",
     "load_policy_value_checkpoint",
     "policy_value_loss",
