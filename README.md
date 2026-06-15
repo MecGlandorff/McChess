@@ -15,6 +15,8 @@ external best-move labels, and imported engine weights. `python-chess` owns the
 rules. Neural networks rank and evaluate positions only after legal move
 masking.
 
+For a quick inspection path through the repo, see [REVIEWER.md](REVIEWER.md).
+
 McChess is not a claim of engine strength. It is a research platform for clean
 ablations, honest evaluation, and compact neural search under limited compute.
 
