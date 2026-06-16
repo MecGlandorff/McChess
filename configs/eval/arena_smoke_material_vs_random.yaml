@@ -1,0 +1,9 @@
+run_id: arena_smoke_material_vs_random
+output_path: runs/eval/arena_smoke_material_vs_random.json
+seed: 0
+num_games: 20
+max_ply: 160
+agent:
+  kind: material
+opponent:
+  kind: random

@@ -369,3 +369,11 @@ Evaluation should use:
 - runtime or speed metrics when practical
 
 Do not claim Elo strength without a careful protocol.
+
+The implemented arena runner plays two configured bots as `agent` and
+`opponent`. Colors alternate with the agent playing White in game 0 and Black
+in game 1. Aggregate wins, draws, losses, and score are always from the named
+agent's perspective. Nonterminal games at the configured `max_ply` are
+adjudicated as draws. The runner records per-game colors, result, termination,
+ply count, final FEN, and UCI move list. It does not use MCTS unless a future
+MCTS bot is explicitly added.

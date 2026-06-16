@@ -14,7 +14,10 @@ class NoLegalMoveError(ValueError):
 class Bot(Protocol):
     """Chess bot interface used by play and evaluation utilities."""
 
-    name: str
+    @property
+    def name(self) -> str:
+        """Human-readable bot identifier."""
+        ...
 
     def choose_move(self, board: chess.Board) -> chess.Move:
         """Choose a legal move for the current board."""

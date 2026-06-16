@@ -149,6 +149,16 @@ status files, checkpoints, and plots.
 - `configs/`: reproducible data, training, evaluation, and future self-play configs
 - `tests/`: chess-rule, data, model-shape, loss, checkpoint, bot, and script tests
 - `docs/`: architecture notes, coding standard, dataset protocol, evaluation protocol, and guides
+
+Run a small local arena:
+
+```bash
+poetry run python scripts/run_arena.py configs/eval/arena_smoke_material_vs_random.yaml
+```
+
+Arena results are written as JSON from the named agent's perspective with
+alternating colors and max-ply draw adjudication. They are local evaluation
+artifacts, not Elo estimates.
 - `reports/`: development reports and diagnostic plots
 
 ## Setup

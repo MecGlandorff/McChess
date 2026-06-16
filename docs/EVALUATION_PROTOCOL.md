@@ -35,6 +35,12 @@ Default arena:
 - record checkpoint and config identifiers
 - record wall-clock runtime when practical
 
+Use `scripts/run_arena.py` for bot-vs-bot arena evaluation. It reads a YAML
+config, alternates colors with the named agent playing White first, adjudicates
+nonterminal games as draws at `max_ply`, and writes one JSON result artifact.
+Aggregate wins, draws, losses, and score are from the named `agent`
+perspective, not always from White's perspective.
+
 Recommended minimum:
 
 - fast smoke: 20 games
@@ -195,6 +201,7 @@ Arena result files should include:
   "status": "completed",
   "seed": 0,
   "num_games": 0,
+  "games_completed": 0,
   "wins": 0,
   "draws": 0,
   "losses": 0,
@@ -202,14 +209,18 @@ Arena result files should include:
   "illegal_moves": 0,
   "max_ply": 0,
   "draw_rule": "",
+  "color_policy": "",
   "opening_protocol": "",
   "agent": "",
   "opponent": "",
   "agent_checkpoint": null,
   "opponent_checkpoint": null,
   "mcts_budget": null,
+  "git_commit": null,
+  "config_path": "",
   "eval_config": "",
   "started_at": "",
-  "completed_at": ""
+  "completed_at": "",
+  "games": []
 }
 ```
