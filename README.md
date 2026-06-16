@@ -3,6 +3,14 @@
 [![CI](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+## Quick Start: Watch Two Bots Play
+
+Open [notebooks/bot_vs_bot.ipynb](notebooks/bot_vs_bot.ipynb) with the
+`McChess (.venv)` Jupyter kernel to watch the local ResNet-A and ResNet-B
+policy-only checkpoints play a live board. The notebook loads trained
+checkpoints, applies legal move masking, animates moves, and writes an arena
+JSON result.
+
 McChess is a compact neural-chess research system: raw human PGNs in, explicit
 chess-rule tensors out, PyTorch policy/value checkpoints, reproducible metrics,
 and playable policy-only bots. It is built around one question:
@@ -35,13 +43,12 @@ experiments:
 | Training | YAML-configured supervised training with epoch metrics, batch metrics, checkpoints, and loss plots |
 | Evaluation metrics | Legal-masked supervised top-k evaluation and value diagnostics via `scripts/eval_top1.py` |
 | Bots | Random, material, negamax alpha-beta, and policy-only checkpoint bots |
-| Play | Clickable notebook widget for playing a local policy-only checkpoint |
+| Play | Clickable notebook widget for playing a local policy-only checkpoint, plus `bot_vs_bot.ipynb` for live ResNet-A vs ResNet-B policy-only play |
 | Reproducibility | Project invariants, dataset protocol, evaluation protocol, model card, configs, and CI checks |
 | Tests | Coverage for board encoding, move indexing, legal masks, PGNs, datasets, model shapes, losses, checkpoints, bots, and scripts |
 
 Not yet implemented:
 
-- arena evaluation
 - neural MCTS
 - temporal and attention model families
 - search distillation
@@ -115,7 +122,7 @@ PGN games
   -> board tensors, policy targets, values   implemented
   -> policy/value ResNet                     implemented
   -> policy-only bot                         implemented
-  -> arena evaluation                        future
+  -> arena evaluation                        implemented
   -> MCTS-enhanced bot                       future
   -> history, attention, distillation        future
   -> self-play                               future
@@ -149,6 +156,26 @@ status files, checkpoints, and plots.
 - `configs/`: reproducible data, training, evaluation, and future self-play configs
 - `tests/`: chess-rule, data, model-shape, loss, checkpoint, bot, and script tests
 - `docs/`: architecture notes, coding standard, dataset protocol, evaluation protocol, and guides
+
+Run a small local arena:
+
+```bash
+poetry run python scripts/run_arena.py configs/eval/arena_smoke_material_vs_random.yaml
+```
+
+Arena results are written as JSON from the named agent's perspective with
+alternating colors and max-ply draw adjudication. They are local evaluation
+artifacts, not Elo estimates.
+
+To watch local ResNet-A and ResNet-B policy-only checkpoints play with a
+four-second pause after each move:
+
+```bash
+poetry run python scripts/run_arena.py configs/eval/arena_watch_resnet_a_vs_resnet_b.yaml
+```
+
+The delay is for pacing printed moves only; policy-only bots do not spend that
+time searching.
 - `reports/`: development reports and diagnostic plots
 
 ## Setup
@@ -259,8 +286,7 @@ McChess is stronger than Stockfish.
 
 The next milestones are intentionally narrow:
 
-1. Add reproducible arena evaluation with alternating colors, seeds, max-ply
-   limits, W/D/L counts, and illegal-move accounting.
+1. Run and record initial policy-only arena comparisons under fixed configs.
 2. Add neural MCTS with legal expansion, masked priors, terminal handling, and
    backup sign-flip tests.
 3. Compare policy-only and MCTS play under fixed budgets.

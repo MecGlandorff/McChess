@@ -1,0 +1,17 @@
+run_id: arena_watch_resnet_a_vs_resnet_b
+output_path: runs/eval/arena_watch_resnet_a_vs_resnet_b.json
+seed: 0
+num_games: 2
+max_ply: 160
+move_delay_seconds: 4.0
+print_moves: true
+agent:
+  kind: policy_only
+  name: resnet_a_policy_only
+  checkpoint_path: runs/lichess_2026_05_2000plus_epoch20_cached_batchmetrics/checkpoint.pt
+  device: auto
+opponent:
+  kind: policy_only
+  name: resnet_b_policy_only
+  checkpoint_path: runs/lichess_2026_05_2000plus_resnet_b_epoch20_cached_batchmetrics/checkpoint.pt
+  device: auto

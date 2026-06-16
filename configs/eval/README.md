@@ -21,3 +21,30 @@ top_k: [1, 3, 5]
 
 The evaluator uses the JSONL shard, not only tensor caches, because legal-masked
 top-k metrics require reconstructing the board from FEN.
+
+Arena bot-vs-bot evaluation uses `scripts/run_arena.py` with a YAML config:
+
+```yaml
+run_id: arena_smoke_material_vs_random
+output_path: runs/eval/arena_smoke_material_vs_random.json
+seed: 0
+num_games: 20
+max_ply: 160
+agent:
+  kind: material
+opponent:
+  kind: random
+```
+
+Supported arena bot kinds are `random`, `material`, `negamax`, and
+`policy_only`. `negamax` accepts `depth`; `policy_only` requires
+`checkpoint_path` and may set `device`. Arena wins, draws, losses, and score
+are recorded from the named `agent` perspective while colors alternate with the
+agent playing White first.
+
+For a watchable local demo, an arena config may set `print_moves: true` and
+`move_delay_seconds`. This only paces policy-only play; it is not a search or
+thinking-time budget. For example,
+`configs/eval/arena_watch_resnet_a_vs_resnet_b.yaml` runs the local ResNet-A
+checkpoint against the local ResNet-B checkpoint with a four-second pause after
+each move.
