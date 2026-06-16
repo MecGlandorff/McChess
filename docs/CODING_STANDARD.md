@@ -179,6 +179,16 @@ When optimizing, keep the contract visible and add tests that protect behavior.
 Docs should be updated when behavior, tensor shapes, file formats, configs,
 protocols, or research claims change.
 
+Project documentation should sound like it was written by a careful engineer,
+not like product marketing or generated filler. Use direct, concrete language:
+what exists, how to run it, what output it writes, what the result does and
+does not prove, and what limitations remain.
+
+Avoid vague persuasive phrasing, hype, and AI-flavored summary language. Do not
+describe features as signals, showcases, unlocks, seamless experiences, or
+proof of quality. Let runnable commands, tests, configs, and measured results
+speak for themselves.
+
 Keep docs honest and measured. Prefer:
 
 ```text
