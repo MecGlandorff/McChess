@@ -52,6 +52,7 @@ NOTES.local.md
 game.md
 scratch/
 .tmp/
+.pytest-temp/
 .local/
 .claude/
 
