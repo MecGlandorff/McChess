@@ -51,7 +51,10 @@ TODO.local.md
 NOTES.local.md
 game.md
 scratch/
+.tmp/
+.pytest-temp/
 .local/
+.claude/
 
 # Secrets/local config
 .env
