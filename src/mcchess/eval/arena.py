@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime as dt
 import random
 import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Final
@@ -16,6 +17,7 @@ from mcchess.bots import Bot, MaterialBot, NegamaxBot, PolicyOnlyBot, RandomLega
 DRAW_RULE: Final[str] = "python_chess_outcome_or_max_ply_draw"
 COLOR_POLICY: Final[str] = "alternating_agent_white_first"
 OPENING_PROTOCOL: Final[str] = "standard_initial_position"
+MoveCallback = Callable[[dict[str, Any]], None]
 
 
 @dataclass(frozen=True)
@@ -49,12 +51,16 @@ class ArenaConfig:
     seed: int = 0
     num_games: int = 20
     max_ply: int = 160
+    move_delay_seconds: float = 0.0
+    print_moves: bool = False
 
     def __post_init__(self) -> None:
         if self.num_games <= 0:
             raise ValueError("num_games must be positive")
         if self.max_ply <= 0:
             raise ValueError("max_ply must be positive")
+        if self.move_delay_seconds < 0.0:
+            raise ValueError("move_delay_seconds must be non-negative")
         if not self.run_id:
             raise ValueError("run_id must not be empty")
 
@@ -102,6 +108,8 @@ def play_game(
     game_index: int,
     agent_color: chess.Color,
     max_ply: int,
+    move_delay_seconds: float = 0.0,
+    move_callback: MoveCallback | None = None,
 ) -> GameRecord:
     """Play one game and return a serializable record.
 
@@ -160,8 +168,23 @@ def play_game(
                 },
             )
 
+        san = board.san(move)
         board.push(move)
         moves.append(move.uci())
+        if move_callback is not None:
+            move_callback(
+                {
+                    "game_index": game_index,
+                    "ply": len(moves),
+                    "color": color_name,
+                    "bot": bot.name,
+                    "uci": move.uci(),
+                    "san": san,
+                    "fen": board.fen(),
+                }
+            )
+        if move_delay_seconds > 0.0:
+            time.sleep(move_delay_seconds)
 
     return _completed_record(
         game_index=game_index,
@@ -175,7 +198,7 @@ def play_game(
     )
 
 
-def run_match(config: ArenaConfig) -> dict[str, Any]:
+def run_match(config: ArenaConfig, *, move_callback: MoveCallback | None = None) -> dict[str, Any]:
     """Run an arena match and return a JSON-serializable result."""
 
     random.seed(config.seed)
@@ -197,6 +220,8 @@ def run_match(config: ArenaConfig) -> dict[str, Any]:
             game_index=game_index,
             agent_color=agent_color,
             max_ply=config.max_ply,
+            move_delay_seconds=config.move_delay_seconds,
+            move_callback=move_callback,
         )
         games.append(game)
 
@@ -235,6 +260,8 @@ def run_match(config: ArenaConfig) -> dict[str, Any]:
         "score": score,
         "illegal_moves": illegal_moves,
         "max_ply": config.max_ply,
+        "move_delay_seconds": config.move_delay_seconds,
+        "print_moves": config.print_moves,
         "draw_rule": DRAW_RULE,
         "color_policy": COLOR_POLICY,
         "opening_protocol": OPENING_PROTOCOL,

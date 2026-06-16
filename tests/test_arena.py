@@ -74,6 +74,27 @@ def test_play_game_records_checkmate_from_agent_perspective() -> None:
     assert game.moves == ["f2f3", "e7e5", "g2g4", "d8h4"]
 
 
+def test_play_game_reports_move_events() -> None:
+    events: list[dict[str, object]] = []
+
+    game = play_game(
+        ScriptedBot("agent", ["e2e4"]),
+        ScriptedBot("opponent", []),
+        game_index=0,
+        agent_color=chess.WHITE,
+        max_ply=1,
+        move_callback=events.append,
+    )
+
+    assert game.termination == "max_ply"
+    assert events[0]["game_index"] == 0
+    assert events[0]["ply"] == 1
+    assert events[0]["color"] == "white"
+    assert events[0]["bot"] == "agent"
+    assert events[0]["uci"] == "e2e4"
+    assert events[0]["san"] == "e4"
+
+
 def test_run_match_alternates_colors_and_counts_draws(tmp_path: Path) -> None:
     result = run_match(
         ArenaConfig(
@@ -138,6 +159,16 @@ def test_illegal_bot_move_fails_the_match(tmp_path: Path) -> None:
 def test_bot_config_rejects_policy_only_without_checkpoint() -> None:
     with pytest.raises(ValueError, match="checkpoint_path"):
         BotConfig(kind="policy_only")
+
+
+def test_arena_config_rejects_negative_move_delay(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="move_delay_seconds"):
+        ArenaConfig(
+            output_path=str(tmp_path / "arena.json"),
+            move_delay_seconds=-1.0,
+            agent=BotConfig(kind="material"),
+            opponent=BotConfig(kind="random"),
+        )
 
 
 def test_run_arena_script_writes_result_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

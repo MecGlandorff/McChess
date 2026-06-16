@@ -41,6 +41,10 @@ nonterminal games as draws at `max_ply`, and writes one JSON result artifact.
 Aggregate wins, draws, losses, and score are from the named `agent`
 perspective, not always from White's perspective.
 
+`move_delay_seconds` may be used to pace live move printing for watchable local
+demos. It is not a compute budget and should not be interpreted as engine
+thinking time for policy-only bots.
+
 Recommended minimum:
 
 - fast smoke: 20 games
@@ -208,6 +212,7 @@ Arena result files should include:
   "score": 0.0,
   "illegal_moves": 0,
   "max_ply": 0,
+  "move_delay_seconds": 0.0,
   "draw_rule": "",
   "color_policy": "",
   "opening_protocol": "",

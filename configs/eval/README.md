@@ -41,3 +41,10 @@ Supported arena bot kinds are `random`, `material`, `negamax`, and
 `checkpoint_path` and may set `device`. Arena wins, draws, losses, and score
 are recorded from the named `agent` perspective while colors alternate with the
 agent playing White first.
+
+For a watchable local demo, an arena config may set `print_moves: true` and
+`move_delay_seconds`. This only paces policy-only play; it is not a search or
+thinking-time budget. For example,
+`configs/eval/arena_watch_resnet_a_vs_resnet_b.yaml` runs the local ResNet-A
+checkpoint against the local ResNet-B checkpoint with a four-second pause after
+each move.

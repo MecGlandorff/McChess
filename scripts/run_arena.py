@@ -57,10 +57,19 @@ def git_commit() -> str | None:
     return commit or None
 
 
+def print_move_event(event: dict[str, Any]) -> None:
+    print(
+        f"game {event['game_index'] + 1:03d} "
+        f"ply {event['ply']:03d} "
+        f"{event['color']} {event['bot']}: {event['san']} ({event['uci']})",
+        flush=True,
+    )
+
+
 def run_arena(config_path: str | Path) -> Path:
     config_path = Path(config_path)
     config = load_config(config_path)
-    result = run_match(config)
+    result = run_match(config, move_callback=print_move_event if config.print_moves else None)
     result["config_path"] = str(config_path)
     result["config"] = asdict(config)
     result["git_commit"] = git_commit()

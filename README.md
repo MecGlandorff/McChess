@@ -41,7 +41,6 @@ experiments:
 
 Not yet implemented:
 
-- arena evaluation
 - neural MCTS
 - temporal and attention model families
 - search distillation
@@ -115,7 +114,7 @@ PGN games
   -> board tensors, policy targets, values   implemented
   -> policy/value ResNet                     implemented
   -> policy-only bot                         implemented
-  -> arena evaluation                        future
+  -> arena evaluation                        implemented
   -> MCTS-enhanced bot                       future
   -> history, attention, distillation        future
   -> self-play                               future
@@ -159,6 +158,16 @@ poetry run python scripts/run_arena.py configs/eval/arena_smoke_material_vs_rand
 Arena results are written as JSON from the named agent's perspective with
 alternating colors and max-ply draw adjudication. They are local evaluation
 artifacts, not Elo estimates.
+
+To watch local ResNet-A and ResNet-B policy-only checkpoints play with a
+four-second pause after each move:
+
+```bash
+poetry run python scripts/run_arena.py configs/eval/arena_watch_resnet_a_vs_resnet_b.yaml
+```
+
+The delay is for pacing printed moves only; policy-only bots do not spend that
+time searching.
 - `reports/`: development reports and diagnostic plots
 
 ## Setup
@@ -269,8 +278,7 @@ McChess is stronger than Stockfish.
 
 The next milestones are intentionally narrow:
 
-1. Add reproducible arena evaluation with alternating colors, seeds, max-ply
-   limits, W/D/L counts, and illegal-move accounting.
+1. Run and record initial policy-only arena comparisons under fixed configs.
 2. Add neural MCTS with legal expansion, masked priors, terminal handling, and
    backup sign-flip tests.
 3. Compare policy-only and MCTS play under fixed budgets.
