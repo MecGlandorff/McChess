@@ -3,6 +3,14 @@
 [![CI](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+## Quick Start: Watch Two Bots Play
+
+Open [notebooks/bot_vs_bot.ipynb](notebooks/bot_vs_bot.ipynb) with the
+`McChess (.venv)` Jupyter kernel to watch the local ResNet-A and ResNet-B
+policy-only checkpoints play a live board. The notebook loads trained
+checkpoints, applies legal move masking, animates moves, and writes an arena
+JSON result.
+
 McChess is a compact neural-chess research system: raw human PGNs in, explicit
 chess-rule tensors out, PyTorch policy/value checkpoints, reproducible metrics,
 and playable policy-only bots. It is built around one question:
@@ -35,7 +43,7 @@ experiments:
 | Training | YAML-configured supervised training with epoch metrics, batch metrics, checkpoints, and loss plots |
 | Evaluation metrics | Legal-masked supervised top-k evaluation and value diagnostics via `scripts/eval_top1.py` |
 | Bots | Random, material, negamax alpha-beta, and policy-only checkpoint bots |
-| Play | Clickable notebook widget for playing a local policy-only checkpoint |
+| Play | Clickable notebook widget for playing a local policy-only checkpoint, plus `bot_vs_bot.ipynb` for live ResNet-A vs ResNet-B policy-only play |
 | Reproducibility | Project invariants, dataset protocol, evaluation protocol, model card, configs, and CI checks |
 | Tests | Coverage for board encoding, move indexing, legal masks, PGNs, datasets, model shapes, losses, checkpoints, bots, and scripts |
 
