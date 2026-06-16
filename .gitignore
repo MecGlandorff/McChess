@@ -51,7 +51,9 @@ TODO.local.md
 NOTES.local.md
 game.md
 scratch/
+.tmp/
 .local/
+.claude/
 
 # Secrets/local config
 .env

@@ -29,6 +29,7 @@ ipywidgets = "^8.1"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
+addopts = ["--basetemp=.tmp/pytest"]
 
 [tool.ruff]
 line-length = 100
