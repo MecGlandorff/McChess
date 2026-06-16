@@ -154,6 +154,29 @@ McChess is close to leading chess engines.
 McChess is stronger than Stockfish.
 ```
 
+## Writing Voice
+
+Write documentation, README copy, PR descriptions, comments, and other
+user-facing text in plain engineering prose.
+
+Avoid AI-flavored or marketing-like phrasing such as "it works signal",
+"seamless", "powerful", "game-changing", "unlock", "showcase", or vague claims
+of quality. Prefer concrete descriptions of what exists, how to run it, what
+artifact it writes, and what limitation remains.
+
+Prefer:
+
+```text
+Open `notebooks/bot_vs_bot.ipynb` to watch two local policy-only checkpoints
+play a live board.
+```
+
+Avoid:
+
+```text
+This notebook provides an immediate "it works" signal.
+```
+
 ## Preferred Workflow
 
 For nontrivial tasks:
