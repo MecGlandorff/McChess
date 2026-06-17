@@ -9,6 +9,7 @@ import chess
 import pytest
 import yaml  # type: ignore[import-untyped]
 
+from mcchess.eval import arena as arena_module
 from mcchess.eval.arena import ArenaConfig, BotConfig, play_game, run_match
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "run_arena.py"
@@ -159,6 +160,49 @@ def test_illegal_bot_move_fails_the_match(tmp_path: Path) -> None:
 def test_bot_config_rejects_policy_only_without_checkpoint() -> None:
     with pytest.raises(ValueError, match="checkpoint_path"):
         BotConfig(kind="policy_only")
+
+
+def test_bot_config_rejects_mcts_without_checkpoint() -> None:
+    with pytest.raises(ValueError, match="checkpoint_path"):
+        BotConfig(kind="mcts")
+
+
+def test_bot_config_rejects_invalid_mcts_values() -> None:
+    with pytest.raises(ValueError, match="simulations"):
+        BotConfig(kind="mcts", checkpoint_path="checkpoint.pt", simulations=0)
+    with pytest.raises(ValueError, match="c_puct"):
+        BotConfig(kind="mcts", checkpoint_path="checkpoint.pt", c_puct=0.0)
+
+
+def test_run_match_records_mcts_budget(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_build_bot(config: BotConfig, *, default_seed: int) -> arena_module.MaterialBot:
+        del default_seed
+        return arena_module.MaterialBot(name=config.name or config.kind)
+
+    monkeypatch.setattr(arena_module, "build_bot", fake_build_bot)
+
+    result = run_match(
+        ArenaConfig(
+            run_id="arena_test",
+            output_path=str(tmp_path / "arena.json"),
+            seed=0,
+            num_games=1,
+            max_ply=1,
+            agent=BotConfig(
+                kind="mcts",
+                name="mcts_agent",
+                checkpoint_path="checkpoint.pt",
+                simulations=50,
+                c_puct=1.5,
+            ),
+            opponent=BotConfig(kind="material"),
+        )
+    )
+
+    assert result["mcts_budget"] == {
+        "agent": {"simulations": 50, "c_puct": 1.5},
+        "opponent": None,
+    }
 
 
 def test_arena_config_rejects_negative_move_delay(tmp_path: Path) -> None:

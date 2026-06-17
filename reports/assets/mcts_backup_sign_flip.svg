@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="360" viewBox="0 0 920 360" role="img" aria-labelledby="title desc">
+  <title id="title">MCTS backup sign flip</title>
+  <desc id="desc">A diagram showing a leaf value changing sign at each ply while backing up toward the root.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f3a4a"/>
+    </marker>
+    <style>
+      .bg { fill: #fbfaf7; }
+      .panel { fill: #ffffff; stroke: #d8d1c2; stroke-width: 1.5; }
+      .node-white { fill: #eef4ff; stroke: #4267b2; stroke-width: 2.5; }
+      .node-black { fill: #f5f0e7; stroke: #7a3e1d; stroke-width: 2.5; }
+      .line { stroke: #2f3a4a; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
+      .back { stroke: #24785c; stroke-width: 4; fill: none; stroke-dasharray: 8 7; marker-end: url(#arrow); }
+      .label { fill: #1f2937; font-family: Segoe UI, Arial, sans-serif; font-size: 17px; font-weight: 600; }
+      .small { fill: #344054; font-family: Segoe UI, Arial, sans-serif; font-size: 14px; }
+      .muted { fill: #667085; font-family: Segoe UI, Arial, sans-serif; font-size: 15px; }
+      .value { fill: #24785c; font-family: Segoe UI, Arial, sans-serif; font-size: 24px; font-weight: 700; }
+      .bad { fill: #b54708; font-family: Segoe UI, Arial, sans-serif; font-size: 24px; font-weight: 700; }
+      .formula { fill: #111827; font-family: Consolas, Menlo, monospace; font-size: 18px; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="920" height="360"/>
+  <rect class="panel" x="24" y="22" width="872" height="316" rx="10"/>
+
+  <text class="label" x="48" y="54">Backup sign flip</text>
+  <text class="muted" x="48" y="80">The value head always speaks for the side to move at the leaf. On the way back, sides alternate.</text>
+
+  <rect class="node-white" x="88" y="134" width="150" height="74" rx="14"/>
+  <text class="label" x="122" y="164">root</text>
+  <text class="small" x="112" y="186">White to move</text>
+
+  <rect class="node-black" x="378" y="134" width="150" height="74" rx="14"/>
+  <text class="label" x="407" y="164">child</text>
+  <text class="small" x="401" y="186">Black to move</text>
+
+  <rect class="node-white" x="668" y="134" width="150" height="74" rx="14"/>
+  <text class="label" x="710" y="164">leaf</text>
+  <text class="small" x="692" y="186">White to move</text>
+
+  <path class="line" d="M 238 171 L 378 171"/>
+  <path class="line" d="M 528 171 L 668 171"/>
+
+  <text class="value" x="691" y="262">+0.70</text>
+  <text class="small" x="647" y="286">good for White at the leaf</text>
+
+  <path class="back" d="M 670 250 C 610 300, 530 302, 480 212"/>
+  <text class="bad" x="420" y="262">-0.70</text>
+  <text class="small" x="364" y="286">same line from Black's view</text>
+
+  <path class="back" d="M 380 250 C 320 300, 235 300, 182 212"/>
+  <text class="value" x="128" y="262">+0.70</text>
+  <text class="small" x="82" y="286">back to White's view</text>
+
+  <text class="formula" x="312" y="318">value = -value at each ply during backup</text>
+</svg>

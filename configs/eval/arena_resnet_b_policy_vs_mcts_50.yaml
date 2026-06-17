@@ -1,0 +1,19 @@
+run_id: arena_resnet_b_policy_vs_mcts_50
+output_path: runs/eval/arena_resnet_b_policy_vs_mcts_50.json
+seed: 0
+num_games: 20
+max_ply: 160
+move_delay_seconds: 0.0
+print_moves: false
+agent:
+  kind: policy_only
+  name: resnet_b_policy_only
+  checkpoint_path: runs/lichess_2026_05_2000plus_resnet_b_epoch20_cached_batchmetrics/checkpoint.pt
+  device: auto
+opponent:
+  kind: mcts
+  name: resnet_b_mcts_50
+  checkpoint_path: runs/lichess_2026_05_2000plus_resnet_b_epoch20_cached_batchmetrics/checkpoint.pt
+  device: auto
+  simulations: 50
+  c_puct: 1.5

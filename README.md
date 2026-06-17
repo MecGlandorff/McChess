@@ -3,17 +3,23 @@
 [![CI](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## Quick Start: Watch Two Bots Play
+## Quick Start: Watch Or Play Search
 
 Open [notebooks/bot_vs_bot.ipynb](notebooks/bot_vs_bot.ipynb) with the
-`McChess (.venv)` Jupyter kernel to watch the local ResNet-A and ResNet-B
-policy-only checkpoints play a live board. The notebook loads trained
-checkpoints, applies legal move masking, animates moves, and writes an arena
-JSON result.
+`McChess (.venv)` Jupyter kernel to watch the local ResNet-B policy-only
+checkpoint play the same checkpoint with fixed-budget MCTS-50. Open
+[notebooks/play_mcts_bot.ipynb](notebooks/play_mcts_bot.ipynb) to play against
+the local ResNet-B MCTS bot with 300 simulations per move.
+
+For the search math, see
+[MCTS And PUCT In McChess](reports/2026-06-17-mcts-puct-explainer.md). The
+report explains the PUCT score, legal masked priors, and the value backup sign
+flip with diagrams.
 
 McChess is a compact neural-chess research system: raw human PGNs in, explicit
 chess-rule tensors out, PyTorch policy/value checkpoints, reproducible metrics,
-and playable policy-only bots. It is built around one question:
+and playable policy-only plus fixed-budget MCTS bots. It is built around one
+question:
 
 > How far can a small neural chess agent go using human games, architectural
 > inductive bias, search, and self-play without engine supervision?
@@ -42,22 +48,23 @@ experiments:
 | Models | Compact PyTorch policy/value ResNet presets: `resnet_a` and `resnet_b` |
 | Training | YAML-configured supervised training with epoch metrics, batch metrics, checkpoints, and loss plots |
 | Evaluation metrics | Legal-masked supervised top-k evaluation and value diagnostics via `scripts/eval_top1.py` |
-| Bots | Random, material, negamax alpha-beta, and policy-only checkpoint bots |
-| Play | Clickable notebook widget for playing a local policy-only checkpoint, plus `bot_vs_bot.ipynb` for live ResNet-A vs ResNet-B policy-only play |
+| Search | Deterministic fixed-budget PUCT MCTS with masked policy priors and value backup sign flips |
+| Bots | Random, material, negamax alpha-beta, policy-only checkpoint, and MCTS checkpoint bots |
+| Play | Clickable notebooks for policy-only and MCTS play, plus `bot_vs_bot.ipynb` for live ResNet-B policy-only vs MCTS-50 |
 | Reproducibility | Project invariants, dataset protocol, evaluation protocol, model card, configs, and CI checks |
 | Tests | Coverage for board encoding, move indexing, legal masks, PGNs, datasets, model shapes, losses, checkpoints, bots, and scripts |
 
 Not yet implemented:
 
-- neural MCTS
 - temporal and attention model families
 - search distillation
 - self-play
 
 ## Current Evidence
 
-These are supervised-learning measurements only. They do not imply Elo,
-Lichess strength, or engine competitiveness.
+This section separates reportable supervised-learning measurements from local
+development smoke results. None of these imply Elo, Lichess strength, or engine
+competitiveness.
 
 ### Reported Baseline
 
@@ -72,7 +79,8 @@ held-out test slice:
 That run used human moves and final game results only. The raw unmasked argmax
 was legal for 88.8% of evaluated positions, which is useful evidence that the
 model learned board structure, but move selection still requires explicit legal
-masking. For larger ResNets the model the percentage of legal moves with likely increase, but legal masking will stay in place. 
+masking. Larger ResNets may increase the percentage of legal raw argmax moves,
+but legal masking stays in place.
 
 ### Full-Data Supervised Runs
 
@@ -94,8 +102,12 @@ total loss (`2.8403`) was already below ResNet-A's final epoch-20 loss
 
 ![ResNet-B loss curve](reports/assets/lichess_2026_05_resnet_b_loss_curve.svg)
 
-No arena or play-strength evaluation has been run for these full-data
-checkpoints yet. However, if you look at the bot vs bot plays (policy-bot-only), you can see that the games make sense, albeit at a likely <1200 lichess rating.
+An initial local MCTS smoke result is documented in
+[reports/2026-06-17-mcts-puct-explainer.md](reports/2026-06-17-mcts-puct-explainer.md).
+Under `configs/eval/arena_resnet_b_policy_vs_mcts_50.yaml`, the ResNet-B
+MCTS-50 bot scored 20 wins out of 20 games against the same ResNet-B checkpoint
+used policy-only. Illegal moves were zero. This is a local fixed-config smoke
+result, not an Elo estimate or a broad strength claim.
 
 ## Core Contracts
 
@@ -123,7 +135,7 @@ PGN games
   -> policy/value ResNet                     implemented
   -> policy-only bot                         implemented
   -> arena evaluation                        implemented
-  -> MCTS-enhanced bot                       future
+  -> MCTS-enhanced bot                       implemented
   -> history, attention, distillation        future
   -> self-play                               future
 ```
@@ -151,11 +163,13 @@ status files, checkpoints, and plots.
 - `src/mcchess/board/`: board tensors, move indexing, and legal masks
 - `src/mcchess/data/`: PGN parsing, dataset shards, tensor caches, and PyTorch datasets
 - `src/mcchess/model/`: policy/value ResNets, presets, checkpoints, and supervised losses
-- `src/mcchess/bots/`: baseline bots and policy-only checkpoint play
+- `src/mcchess/bots/`: baseline bots, policy-only checkpoint play, and MCTS checkpoint play
+- `src/mcchess/search/`: fixed-budget PUCT MCTS
 - `scripts/`: dataset building, data filtering/downloading, tensor-cache building, training, and top-k evaluation
 - `configs/`: reproducible data, training, evaluation, and future self-play configs
 - `tests/`: chess-rule, data, model-shape, loss, checkpoint, bot, and script tests
 - `docs/`: architecture notes, coding standard, dataset protocol, evaluation protocol, and guides
+- `reports/`: development reports and diagnostic plots
 
 Run a small local arena:
 
@@ -167,16 +181,21 @@ Arena results are written as JSON from the named agent's perspective with
 alternating colors and max-ply draw adjudication. They are local evaluation
 artifacts, not Elo estimates.
 
-To watch local ResNet-A and ResNet-B policy-only checkpoints play with a
-four-second pause after each move:
+Run the local ResNet-B policy-only vs MCTS-50 smoke config:
+
+```bash
+poetry run python scripts/run_arena.py configs/eval/arena_resnet_b_policy_vs_mcts_50.yaml
+```
+
+To watch local ResNet-A and ResNet-B policy-only checkpoints play with printed
+moves and a four-second pause after each move:
 
 ```bash
 poetry run python scripts/run_arena.py configs/eval/arena_watch_resnet_a_vs_resnet_b.yaml
 ```
 
 The delay is for pacing printed moves only; policy-only bots do not spend that
-time searching. 
-- `reports/`: development reports and diagnostic plots
+time searching.
 
 ## Setup
 
@@ -238,8 +257,9 @@ poetry run jupyter nbclassic --no-browser --notebook-dir="$PWD" --port=8888 --Se
 ```
 
 Then open `notebooks/play_policy_bot.ipynb` with the `McChess (.venv)` kernel.
-The notebook is a manual inspection tool, not an arena evaluation or a
-strength result.
+To play against the MCTS bot, open `notebooks/play_mcts_bot.ipynb`. The
+notebooks are manual inspection tools, not arena evaluations or strength
+results.
 
 GPU power limiting for NVIDIA cards can be toggled around CUDA training runs:
 
@@ -286,12 +306,12 @@ McChess is stronger than Stockfish.
 
 The next milestones are intentionally narrow:
 
-1. Run and record initial policy-only arena comparisons under fixed configs.
-2. Add neural MCTS with legal expansion, masked priors, terminal handling, and
-   backup sign-flip tests.
-3. Compare policy-only and MCTS play under fixed budgets.
-4. Add history and attention architectures as matched ablations.
-5. Test search distillation and optional self-play only after the arena and MCTS
+1. Rerun the initial MCTS smoke result from committed code and record it if it
+   should become archival.
+2. Compare policy-only and MCTS play under fixed budgets and broader opening
+   coverage.
+3. Add history and attention architectures as matched ablations.
+4. Test search distillation and optional self-play only after the arena and MCTS
    protocols are stable.
 
 The full milestone list is in `ROADMAP.md`.

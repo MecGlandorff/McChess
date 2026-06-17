@@ -71,22 +71,41 @@ class NotebookChessGame:
         print(self.status)
         return self
 
-    def apply_human_move(self, move: chess.Move) -> None:
-        """Push a legal human move, let the bot reply, and update ``status``."""
+    def apply_human_move(self, move: chess.Move, *, reply: bool = True) -> bool:
+        """Push a legal human move and optionally let the bot reply.
+
+        Returns ``True`` when the human move was applied. The clickable widget
+        uses ``reply=False`` so it can repaint the human move before a slower
+        MCTS reply starts.
+        """
 
         if self.board.is_game_over(claim_draw=True):
             self.status = self._game_over_message()
-            return
+            return False
         if move not in self.board.legal_moves:
             self.status = f"Illegal move: {move.uci()}"
-            return
+            return False
 
         played = f"You played {self.board.san(move)}."
         self.board.push(move)
         if self.board.is_game_over(claim_draw=True):
             self.status = f"{played} {self._game_over_message()}"
-        else:
+        elif reply:
             self.status = f"{played} {self._bot_move()}"
+        else:
+            self.status = f"{played} Bot thinking."
+        return True
+
+    def apply_bot_move(self) -> None:
+        """Let the bot move from the current board position."""
+
+        if self.board.is_game_over(claim_draw=True):
+            self.status = self._game_over_message()
+            return
+        if self.board.turn == self.human_color:
+            self.status = "Your move."
+            return
+        self.status = self._bot_move()
 
     def _parse_move(self, move_text: str) -> chess.Move:
         try:
@@ -169,7 +188,10 @@ class ClickableChessBoard:
         else:
             move = self._build_move(self._selected, clicked)
             self._selected = None
-            self.game.apply_human_move(move)
+            moved = self.game.apply_human_move(move, reply=False)
+            if moved and not self.game.board.is_game_over(claim_draw=True):
+                self._refresh()
+                self.game.apply_bot_move()
         self._refresh()
 
     def _display_squares(self) -> list[chess.Square]:

@@ -2,10 +2,12 @@
 
 from mcchess.bots.base import Bot, NoLegalMoveError, legal_moves_or_raise
 from mcchess.bots.baselines import MaterialBot, NegamaxBot, RandomLegalBot, material_balance
+from mcchess.bots.mcts import MCTSBot
 from mcchess.bots.policy import PolicyOnlyBot
 
 __all__ = [
     "Bot",
+    "MCTSBot",
     "MaterialBot",
     "NegamaxBot",
     "NoLegalMoveError",

@@ -248,11 +248,17 @@ Initial playable agents use a small `choose_move(board)` bot interface.
 - random legal-move bot
 - one-ply material bot
 - policy-only checkpoint bot
+- fixed-budget MCTS checkpoint bot
 
 The policy-only bot loads a supervised `PolicyValueResNet` checkpoint, encodes
 the current board, runs the policy head, masks illegal moves with
 `legal_policy_mask(board)`, and chooses the highest-logit legal move. It does
 not use MCTS or the value head for move selection.
+
+The MCTS bot loads the same checkpoint format and runs deterministic fixed-budget
+PUCT search. It expands legal moves only, derives priors from legally masked
+policy logits, evaluates nonterminal leaves with the value head, and flips value
+perspective on every backup ply.
 
 The notebook play helper provides a click-to-move ipywidgets board whose
 buttons are built once and mutated in place after each move. It is an
@@ -375,5 +381,5 @@ The implemented arena runner plays two configured bots as `agent` and
 in game 1. Aggregate wins, draws, losses, and score are always from the named
 agent's perspective. Nonterminal games at the configured `max_ply` are
 adjudicated as draws. The runner records per-game colors, result, termination,
-ply count, final FEN, and UCI move list. It does not use MCTS unless a future
-MCTS bot is explicitly added.
+ply count, final FEN, UCI move list, and MCTS budget metadata when either side
+uses the MCTS bot.
