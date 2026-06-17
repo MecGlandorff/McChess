@@ -26,7 +26,7 @@ masking.
 For a quick inspection path through the repo, see [REVIEWER.md](REVIEWER.md).
 
 McChess is not a claim of engine strength. It is a research platform for clean
-ablations, honest evaluation, and compact neural search under limited compute.
+ablations, evaluation, and compact neural search under limited compute (in my case a Nvidia RTX4060 (8GB VRAM)+ 16GB of RAM).
 
 ## What Works Now
 
@@ -72,11 +72,11 @@ held-out test slice:
 That run used human moves and final game results only. The raw unmasked argmax
 was legal for 88.8% of evaluated positions, which is useful evidence that the
 model learned board structure, but move selection still requires explicit legal
-masking.
+masking. For larger ResNets the model the percentage of legal moves with likely increase, but legal masking will stay in place. 
 
 ### Full-Data Supervised Runs
 
-The current matched ResNet-A vs ResNet-B comparison uses the May 2026 2000+
+The current matched ResNet-A vs ResNet-B comparison uses the May 2026 2000+ (rating)
 Lichess dataset with 73,553,382 train positions and 747,498 validation
 positions. Both runs use batch size 2048, AdamW, learning rate `5e-4`, seed
 `20260501`, CUDA, and the tensor cache.
@@ -95,7 +95,7 @@ total loss (`2.8403`) was already below ResNet-A's final epoch-20 loss
 ![ResNet-B loss curve](reports/assets/lichess_2026_05_resnet_b_loss_curve.svg)
 
 No arena or play-strength evaluation has been run for these full-data
-checkpoints yet.
+checkpoints yet. However, if you look at the bot vs bot plays (policy-bot-only), you can see that the games make sense, albeit at a likely <1200 lichess rating.
 
 ## Core Contracts
 
@@ -175,7 +175,7 @@ poetry run python scripts/run_arena.py configs/eval/arena_watch_resnet_a_vs_resn
 ```
 
 The delay is for pacing printed moves only; policy-only bots do not spend that
-time searching.
+time searching. 
 - `reports/`: development reports and diagnostic plots
 
 ## Setup
