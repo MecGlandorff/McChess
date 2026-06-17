@@ -12,8 +12,12 @@ One reportable supervised baseline run exists:
   600k-position prefix of the Lichess 2013-01 training shard and evaluated on a
   40k-position held-out test slice.
 
-No arena, MCTS, search-distillation, self-play, or matched architecture-ablation
-results have been run yet.
+No archival arena, MCTS scaling, search-distillation, self-play, or matched
+architecture-ablation result has been promoted to this file yet.
+
+A local working-tree MCTS smoke run is described in
+`reports/2026-06-17-mcts-puct-explainer.md`. It should be rerun from committed
+code before being treated as an archival result.
 
 ## Reporting Standards
 
@@ -104,7 +108,11 @@ Notes:
 
 ## Arena Results
 
-No arena evaluations have been run yet.
+No archival arena evaluation has been promoted to this file yet.
+
+See `reports/2026-06-17-policy-arena-determinism.md` for a deterministic
+policy-only diagnostic and `reports/2026-06-17-mcts-puct-explainer.md` for the
+first local MCTS-50 smoke result.
 
 | Experiment | Agent | Opponent | Games | Wins | Draws | Losses | Score |
 |---|---|---|---:|---:|---:|---:|---:|
@@ -112,7 +120,10 @@ No arena evaluations have been run yet.
 
 ## MCTS Scaling Results
 
-No MCTS scaling evaluations have been run yet.
+No MCTS scaling evaluation has been promoted to this file yet.
+
+The first local MCTS-50 smoke run should be rerun after the MCTS branch is
+committed before it is copied into the results table.
 
 | Model | Budget | Games | Score | Nodes/sec | Notes |
 |---|---:|---:|---:|---:|---|
@@ -161,5 +172,5 @@ inspect positions where the human move is in the short list but not ranked first
 - The evaluation used a 40k-position slice of the test shard, not the full test
   set.
 - No top-k confidence interval or multi-seed variance is reported.
-- No arena, MCTS, self-play, search-distillation, or matched architecture
-  ablation result has been measured yet.
+- No arena, MCTS scaling, self-play, search-distillation, or matched
+  architecture ablation result has been promoted as archival yet.

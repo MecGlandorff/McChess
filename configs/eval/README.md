@@ -36,11 +36,22 @@ opponent:
   kind: random
 ```
 
-Supported arena bot kinds are `random`, `material`, `negamax`, and
-`policy_only`. `negamax` accepts `depth`; `policy_only` requires
-`checkpoint_path` and may set `device`. Arena wins, draws, losses, and score
-are recorded from the named `agent` perspective while colors alternate with the
-agent playing White first.
+Supported arena bot kinds are `random`, `material`, `negamax`, `policy_only`,
+and `mcts`. `negamax` accepts `depth`; `policy_only` requires
+`checkpoint_path` and may set `device`; `mcts` requires `checkpoint_path` and
+may set `device`, `simulations`, and `c_puct`. Arena wins, draws, losses, and
+score are recorded from the named `agent` perspective while colors alternate
+with the agent playing White first.
+
+For a fixed-budget search comparison, run:
+
+```powershell
+poetry run python scripts/run_arena.py configs/eval/arena_resnet_b_policy_vs_mcts_50.yaml
+```
+
+That config compares the local ResNet-B policy-only checkpoint against the same
+checkpoint with deterministic MCTS-50. The result JSON records the MCTS budget
+at match level.
 
 For a watchable local demo, an arena config may set `print_moves: true` and
 `move_delay_seconds`. This only paces policy-only play; it is not a search or

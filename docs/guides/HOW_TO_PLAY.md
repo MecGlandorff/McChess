@@ -1,11 +1,13 @@
-# Playing A Policy Checkpoint Locally
+# Playing Local Checkpoints
 
-This guide starts the notebook widget board for playing against a local
-policy-only McChess checkpoint. It is for manual inspection and debugging, not
-arena evaluation or a playing-strength claim.
+This guide starts notebook widget boards for playing against local McChess
+checkpoints. They are for manual inspection and debugging, not arena evaluation
+or playing-strength claims.
 
-The bot uses explicit legal move masking through `python-chess`. It does not use
-MCTS/search, and it does not use the value head for move selection.
+The policy-only notebook uses explicit legal move masking through
+`python-chess`. It does not use MCTS/search, and it does not use the value head
+for move selection. The MCTS notebook uses the same legal move rules with a
+fixed simulation budget.
 
 ## Prerequisites
 
@@ -64,6 +66,12 @@ Open:
 http://127.0.0.1:8888/notebooks/notebooks/play_policy_bot.ipynb?token=mcchess
 ```
 
+For the MCTS play notebook, open:
+
+```text
+http://127.0.0.1:8888/notebooks/notebooks/play_mcts_bot.ipynb?token=mcchess
+```
+
 ## Run The Notebook
 
 In `notebooks/play_policy_bot.ipynb`:
@@ -83,6 +91,23 @@ inference_device = "cpu"
 This avoids competing with CUDA training. After training is finished, you can
 change it to `"auto"` or `"cuda"` if you want GPU inference, but the current
 policy-only model is small enough for CPU play.
+
+## Play The MCTS Bot
+
+`notebooks/play_mcts_bot.ipynb` loads the local ResNet-B checkpoint and wraps it
+in the fixed-budget MCTS bot.
+
+The default MCTS setting is:
+
+```python
+MCTS_SIMULATIONS = 300
+```
+
+This is the number of tree-search simulations per bot move. It is not a fixed
+search depth. The notebook checks that the value stays between 200 and 400.
+
+MCTS play is slower than policy-only play. If CUDA is available, the notebook's
+default `INFERENCE_DEVICE = "auto"` may use it for model evaluation.
 
 ## How To Move
 
@@ -133,8 +158,8 @@ the command and URL to another port, such as `--port=8889`.
 
 - This is a notebook play helper, not a real game UI.
 - Moves are clicked, not dragged.
-- The current bot is policy-only and greedy over legally masked logits.
-- There is no search/MCTS in this notebook path.
+- `play_policy_bot.ipynb` is policy-only and greedy over legally masked logits.
+- The MCTS notebook uses fixed simulations per move, not clock time.
 - Manual games are useful for qualitative inspection, but they are not
   reportable evaluation results.
 

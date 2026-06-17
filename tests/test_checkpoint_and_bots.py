@@ -231,6 +231,16 @@ class ScriptedBot:
         return move
 
 
+class RecordingClickableChessBoard(ClickableChessBoard):
+    def __init__(self, game: NotebookChessGame) -> None:
+        self.refresh_moves: list[list[str]] = []
+        super().__init__(game)
+
+    def _refresh(self) -> None:
+        self.refresh_moves.append([move.uci() for move in self.game.board.move_stack])
+        super()._refresh()
+
+
 def test_notebook_game_applies_human_move_and_bot_reply() -> None:
     game = NotebookChessGame(bot=ScriptedBot(["e7e5"]), human_color=chess.WHITE)
 
@@ -300,6 +310,18 @@ def test_clickable_board_applies_clicks_and_bot_reply() -> None:
     assert "mcchess-black-piece" in ui._buttons[chess.E5]._dom_classes
     assert ui._buttons[chess.E4].description == chess.Piece(chess.PAWN, chess.WHITE).unicode_symbol()
     assert ui._buttons[chess.E5].description == chess.Piece(chess.PAWN, chess.BLACK).unicode_symbol()
+
+
+def test_clickable_board_refreshes_human_move_before_bot_reply() -> None:
+    game = NotebookChessGame(bot=ScriptedBot(["e7e5"]), human_color=chess.WHITE)
+    ui = RecordingClickableChessBoard(game)
+
+    ui.click_square("e2")
+    ui.click_square("e4")
+
+    human_move_index = ui.refresh_moves.index(["e2e4"])
+    bot_reply_index = ui.refresh_moves.index(["e2e4", "e7e5"])
+    assert human_move_index < bot_reply_index
 
 
 def test_clickable_board_illegal_target_does_not_mutate_board() -> None:

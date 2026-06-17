@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import math
 import random
 import time
 from collections.abc import Callable
@@ -12,7 +13,7 @@ from typing import Any, Final
 
 import chess
 
-from mcchess.bots import Bot, MaterialBot, NegamaxBot, PolicyOnlyBot, RandomLegalBot
+from mcchess.bots import Bot, MCTSBot, MaterialBot, NegamaxBot, PolicyOnlyBot, RandomLegalBot
 
 DRAW_RULE: Final[str] = "python_chess_outcome_or_max_ply_draw"
 COLOR_POLICY: Final[str] = "alternating_agent_white_first"
@@ -30,14 +31,20 @@ class BotConfig:
     depth: int | None = None
     checkpoint_path: str | None = None
     device: str = "auto"
+    simulations: int | None = None
+    c_puct: float | None = None
 
     def __post_init__(self) -> None:
-        if self.kind not in {"random", "material", "negamax", "policy_only"}:
+        if self.kind not in {"random", "material", "negamax", "policy_only", "mcts"}:
             raise ValueError(f"unsupported bot kind: {self.kind}")
         if self.kind == "negamax" and self.depth is not None and self.depth < 1:
             raise ValueError("negamax depth must be at least 1")
-        if self.kind == "policy_only" and not self.checkpoint_path:
-            raise ValueError("policy_only bot requires checkpoint_path")
+        if self.kind in {"policy_only", "mcts"} and not self.checkpoint_path:
+            raise ValueError(f"{self.kind} bot requires checkpoint_path")
+        if self.simulations is not None and self.simulations <= 0:
+            raise ValueError("simulations must be positive")
+        if self.c_puct is not None and (not math.isfinite(self.c_puct) or self.c_puct <= 0.0):
+            raise ValueError("c_puct must be a positive finite value")
 
 
 @dataclass(frozen=True)
@@ -98,6 +105,15 @@ def build_bot(config: BotConfig, *, default_seed: int) -> Bot:
     if config.kind == "policy_only":
         assert config.checkpoint_path is not None
         return PolicyOnlyBot.from_checkpoint(config.checkpoint_path, device=config.device, name=name)
+    if config.kind == "mcts":
+        assert config.checkpoint_path is not None
+        return MCTSBot.from_checkpoint(
+            config.checkpoint_path,
+            device=config.device,
+            name=name,
+            simulations=_mcts_simulations(config),
+            c_puct=_mcts_c_puct(config),
+        )
     raise ValueError(f"unsupported bot kind: {config.kind}")
 
 
@@ -269,7 +285,7 @@ def run_match(config: ArenaConfig, *, move_callback: MoveCallback | None = None)
         "opponent": opponent.name,
         "agent_checkpoint": config.agent.checkpoint_path,
         "opponent_checkpoint": config.opponent.checkpoint_path,
-        "mcts_budget": None,
+        "mcts_budget": _match_mcts_budget(config),
         "started_at": started_at,
         "completed_at": completed_at,
         "elapsed_seconds": time.perf_counter() - start_time,
@@ -285,7 +301,38 @@ def _default_bot_name(config: BotConfig) -> str:
     if config.kind == "policy_only":
         checkpoint_name = Path(config.checkpoint_path or "checkpoint").stem
         return f"policy_only:{checkpoint_name}"
+    if config.kind == "mcts":
+        checkpoint_name = Path(config.checkpoint_path or "checkpoint").stem
+        return f"mcts_{_mcts_simulations(config)}:{checkpoint_name}"
     return config.kind
+
+
+def _mcts_simulations(config: BotConfig) -> int:
+    return config.simulations if config.simulations is not None else 50
+
+
+def _mcts_c_puct(config: BotConfig) -> float:
+    return config.c_puct if config.c_puct is not None else 1.5
+
+
+def _bot_mcts_budget(config: BotConfig) -> dict[str, float | int] | None:
+    if config.kind != "mcts":
+        return None
+    return {
+        "simulations": _mcts_simulations(config),
+        "c_puct": _mcts_c_puct(config),
+    }
+
+
+def _match_mcts_budget(config: ArenaConfig) -> dict[str, dict[str, float | int] | None] | None:
+    agent_budget = _bot_mcts_budget(config.agent)
+    opponent_budget = _bot_mcts_budget(config.opponent)
+    if agent_budget is None and opponent_budget is None:
+        return None
+    return {
+        "agent": agent_budget,
+        "opponent": opponent_budget,
+    }
 
 
 def _completed_record(

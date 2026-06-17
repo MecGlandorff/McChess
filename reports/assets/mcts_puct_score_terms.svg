@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="390" viewBox="0 0 920 390" role="img" aria-labelledby="title desc">
+  <title id="title">PUCT score terms</title>
+  <desc id="desc">A diagram splitting the PUCT score into Q and U terms for three candidate moves.</desc>
+  <style>
+    .bg { fill: #fbfaf7; }
+    .panel { fill: #ffffff; stroke: #d8d1c2; stroke-width: 1.5; }
+    .axis { stroke: #98a2b3; stroke-width: 1; }
+    .q { fill: #316b83; }
+    .u { fill: #d9902f; }
+    .total { fill: #24785c; }
+    .text { fill: #1f2937; font-family: Segoe UI, Arial, sans-serif; }
+    .muted { fill: #667085; font-family: Segoe UI, Arial, sans-serif; font-size: 15px; }
+    .label { fill: #1f2937; font-family: Segoe UI, Arial, sans-serif; font-size: 16px; font-weight: 600; }
+    .small { fill: #344054; font-family: Segoe UI, Arial, sans-serif; font-size: 14px; }
+    .formula { fill: #111827; font-family: Consolas, Menlo, monospace; font-size: 22px; }
+    .caption { fill: #344054; font-family: Segoe UI, Arial, sans-serif; font-size: 14px; }
+  </style>
+
+  <rect class="bg" width="920" height="390"/>
+  <rect class="panel" x="24" y="22" width="872" height="346" rx="10"/>
+
+  <text class="label" x="48" y="54">PUCT selection score</text>
+  <text class="formula" x="48" y="90">score = Q(s,a) + c_puct * P(s,a) * sqrt(N(s)) / (1 + N(s,a))</text>
+  <text class="muted" x="48" y="118">Read it as: known value plus a shrinking reason to keep checking policy-promising moves.</text>
+
+  <line class="axis" x1="178" y1="318" x2="790" y2="318"/>
+  <line class="axis" x1="178" y1="158" x2="178" y2="318"/>
+
+  <text class="small" x="96" y="190">e4</text>
+  <rect class="q" x="178" y="170" width="168" height="28" rx="4"/>
+  <rect class="u" x="346" y="170" width="190" height="28" rx="4"/>
+  <circle class="total" cx="554" cy="184" r="6"/>
+  <text class="caption" x="548" y="164">0.64</text>
+
+  <text class="small" x="96" y="240">d4</text>
+  <rect class="q" x="178" y="220" width="308" height="28" rx="4"/>
+  <rect class="u" x="486" y="220" width="34" height="28" rx="4"/>
+  <circle class="total" cx="538" cy="234" r="6"/>
+  <text class="caption" x="532" y="214">0.61</text>
+
+  <text class="small" x="96" y="290">Nf3</text>
+  <rect class="q" x="178" y="270" width="56" height="28" rx="4"/>
+  <rect class="u" x="234" y="270" width="252" height="28" rx="4"/>
+  <circle class="total" cx="504" cy="284" r="6"/>
+  <text class="caption" x="498" y="264">0.55</text>
+
+  <rect class="q" x="608" y="166" width="24" height="16" rx="3"/>
+  <text class="small" x="642" y="179">Q: value found by previous simulations</text>
+  <rect class="u" x="608" y="202" width="24" height="16" rx="3"/>
+  <text class="small" x="642" y="215">U: exploration bonus from policy prior</text>
+  <circle class="total" cx="620" cy="246" r="7"/>
+  <text class="small" x="642" y="251">selected move has the highest Q + U</text>
+
+  <text class="caption" x="178" y="342">The U term starts large for likely moves, then shrinks as N(s,a) grows.</text>
+</svg>

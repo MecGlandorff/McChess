@@ -133,6 +133,10 @@ The result JSON records:
 - prediction distribution, decisive sign accuracy, calibration buckets, and ply
   buckets
 
+For arena runs, `kind: mcts` uses a fixed simulation budget from the YAML
+config. The result JSON records that budget in `mcts_budget`; policy-only bots
+leave the corresponding side as `null`.
+
 Use validation data for tuning choices such as checkpoint selection,
 normalization variants, loss weights, or reranking. Use test data for the final
 reported number under a fixed config.
