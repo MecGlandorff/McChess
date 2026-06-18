@@ -2,13 +2,13 @@
 
 Evaluation and arena configs belong here.
 
-Supervised checkpoint top-k/value evaluation uses `scripts/eval_top1.py` with a
+Supervised checkpoint top-k/value evaluation uses `mcchess.eval.supervised` with a
 YAML config:
 
 ```yaml
 checkpoint_path: runs/example/checkpoint.pt
 data_path: data/processed/example/test.jsonl
-output_path: runs/example/eval_test.json
+output_dir: runs/example/eval_test
 dataset_manifest_path: data/manifests/example_manifest.json
 split: test
 seed: 0
@@ -22,14 +22,15 @@ top_k: [1, 3, 5]
 The evaluator uses the JSONL shard, not only tensor caches, because legal-masked
 top-k metrics require reconstructing the board from FEN.
 
-Arena bot-vs-bot evaluation uses `scripts/run_arena.py` with a YAML config:
+Arena bot-vs-bot evaluation uses `mcchess.eval.arena` with a YAML config:
 
 ```yaml
 run_id: arena_smoke_material_vs_random
-output_path: runs/eval/arena_smoke_material_vs_random.json
+output_dir: runs/eval/arena_smoke_material_vs_random
 seed: 0
 num_games: 20
 max_ply: 160
+opening_fens: []
 agent:
   kind: material
 opponent:
@@ -42,11 +43,13 @@ and `mcts`. `negamax` accepts `depth`; `policy_only` requires
 may set `device`, `simulations`, and `c_puct`. Arena wins, draws, losses, and
 score are recorded from the named `agent` perspective while colors alternate
 with the agent playing White first.
+If `opening_fens` is set, adjacent games reuse the same FEN with colors swapped;
+each game record stores `opening_index` and `starting_fen`.
 
 For a fixed-budget search comparison, run:
 
 ```powershell
-poetry run python scripts/run_arena.py configs/eval/arena_resnet_b_policy_vs_mcts_50.yaml
+poetry run python -m mcchess.eval.arena configs/eval/arena_resnet_b_policy_vs_mcts_50.yaml
 ```
 
 That config compares the local ResNet-B policy-only checkpoint against the same
@@ -59,3 +62,64 @@ thinking-time budget. For example,
 `configs/eval/arena_watch_resnet_a_vs_resnet_b.yaml` runs the local ResNet-A
 checkpoint against the local ResNet-B checkpoint with a four-second pause after
 each move.
+
+## External Stockfish Benchmark
+
+`configs/eval/stockfish_mcts200_resnet_b_elo.yaml` runs a short local ResNet-B
+MCTS-200 benchmark against a local Stockfish UCI binary. For a report-scale run,
+use `configs/eval/stockfish_mcts200_resnet_b_elo_200games.yaml`, which keeps
+the same protocol but runs 20 games at each Stockfish `UCI_Elo` level from 1600
+through 2500. These are external evaluation benchmarks only. Stockfish moves,
+evaluations, and game outcomes must not be used for training, labels,
+distillation, or checkpoint selection targets.
+
+Install Stockfish into an ignored local folder such as `.local/stockfish`, set
+`STOCKFISH_PATH`, then run:
+
+```powershell
+poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts200_resnet_b_elo.yaml
+```
+
+For the 200-game benchmark:
+
+```powershell
+poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts200_resnet_b_elo_200games.yaml
+```
+
+To watch moves in the terminal:
+
+```powershell
+poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts200_resnet_b_elo.yaml --print-moves --move-delay-seconds 0.15
+```
+
+To open live Python windows for the current board and cumulative game table:
+
+```powershell
+poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts200_resnet_b_elo.yaml --show
+```
+
+The runner writes `result.json`, `games.csv`, and `report.md` under the
+config's `output_dir`. The short config uses
+`runs/external_stockfish/stockfish_mcts200_resnet_b_elo/`; the 200-game config
+uses `runs/external_stockfish/stockfish_mcts200_resnet_b_elo_200games/`. The
+rough Elo estimate uses only completed `UCI_Elo` games and excludes
+full-strength Stockfish sanity games. Interpret each opponent label as a
+Stockfish `UCI_Elo` handicap setting under the recorded move limit, for example
+`time=1.0s/move`; it is not Lichess Elo, FIDE Elo, or a general
+engine-strength claim. The Stockfish runner shows game-level terminal progress
+by default; use `--no-progress` for plain log output.
+
+Stockfish benchmark configs may also set `opening_fens`; adjacent games within
+each Stockfish level reuse the same FEN. If setup fails after the config has
+loaded, the runner writes a failed `result.json` before re-raising the error.
+
+To check whether the local Stockfish binary's adjacent `UCI_Elo` levels are
+ordered sensibly under the same 1.0 second limit, run:
+
+```powershell
+poetry run python -m mcchess.eval.stockfish_ladder configs/eval/stockfish_uci_ladder_selfcheck.yaml
+```
+
+The ladder diagnostic is a Stockfish-vs-Stockfish self-check. It is not a
+calibration to Lichess, FIDE, CCRL, or McChess strength. It also shows
+game-level terminal progress by default and supports `--no-progress`.

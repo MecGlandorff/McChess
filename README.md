@@ -47,7 +47,7 @@ experiments:
 | Training input | JSONL-backed datasets plus optional tensor caches for faster local CUDA training |
 | Models | Compact PyTorch policy/value ResNet presets: `resnet_a` and `resnet_b` |
 | Training | YAML-configured supervised training with epoch metrics, batch metrics, checkpoints, and loss plots |
-| Evaluation metrics | Legal-masked supervised top-k evaluation and value diagnostics via `scripts/eval_top1.py` |
+| Evaluation metrics | Legal-masked supervised top-k evaluation and value diagnostics via `python -m mcchess.eval.supervised` |
 | Search | Deterministic fixed-budget PUCT MCTS with masked policy priors and value backup sign flips |
 | Bots | Random, material, negamax alpha-beta, policy-only checkpoint, and MCTS checkpoint bots |
 | Play | Clickable notebooks for policy-only and MCTS play, plus `bot_vs_bot.ipynb` for live ResNet-B policy-only vs MCTS-50 |
@@ -109,6 +109,14 @@ MCTS-50 bot scored 20 wins out of 20 games against the same ResNet-B checkpoint
 used policy-only. Illegal moves were zero. This is a local fixed-config smoke
 result, not an Elo estimate or a broad strength claim.
 
+A thin exploratory external Stockfish-UCI run estimated ResNet-B MCTS-200 at
+roughly `2163` against Stockfish `UCI_Elo` handicap levels. That estimate came
+from 20 included handicap games (`12.0/20`, rough interval `1969-2361`) plus one
+full-strength sanity game in an old notebook-style run. It is not a promoted
+result: the sample is small, it predates the package runner, and it is not
+Lichess Elo, FIDE Elo, or general engine strength. The planned replacement is a
+200-game run via `configs/eval/stockfish_mcts200_resnet_b_elo_200games.yaml`.
+
 ## Core Contracts
 
 McChess keeps chess and tensor assumptions explicit so experiments do not drift.
@@ -165,7 +173,7 @@ status files, checkpoints, and plots.
 - `src/mcchess/model/`: policy/value ResNets, presets, checkpoints, and supervised losses
 - `src/mcchess/bots/`: baseline bots, policy-only checkpoint play, and MCTS checkpoint play
 - `src/mcchess/search/`: fixed-budget PUCT MCTS
-- `scripts/`: dataset building, data filtering/downloading, tensor-cache building, training, and top-k evaluation
+- `scripts/`: dataset building, data filtering/downloading, tensor-cache building, and training
 - `configs/`: reproducible data, training, evaluation, and future self-play configs
 - `tests/`: chess-rule, data, model-shape, loss, checkpoint, bot, and script tests
 - `docs/`: architecture notes, coding standard, dataset protocol, evaluation protocol, and guides
@@ -174,24 +182,24 @@ status files, checkpoints, and plots.
 Run a small local arena:
 
 ```bash
-poetry run python scripts/run_arena.py configs/eval/arena_smoke_material_vs_random.yaml
+poetry run python -m mcchess.eval.arena configs/eval/arena_smoke_material_vs_random.yaml
 ```
 
-Arena results are written as JSON from the named agent's perspective with
-alternating colors and max-ply draw adjudication. They are local evaluation
-artifacts, not Elo estimates.
+Arena results are written under the configured `output_dir` from the named
+agent's perspective with alternating colors and max-ply draw adjudication. They
+are local evaluation artifacts, not Elo estimates.
 
 Run the local ResNet-B policy-only vs MCTS-50 smoke config:
 
 ```bash
-poetry run python scripts/run_arena.py configs/eval/arena_resnet_b_policy_vs_mcts_50.yaml
+poetry run python -m mcchess.eval.arena configs/eval/arena_resnet_b_policy_vs_mcts_50.yaml
 ```
 
 To watch local ResNet-A and ResNet-B policy-only checkpoints play with printed
 moves and a four-second pause after each move:
 
 ```bash
-poetry run python scripts/run_arena.py configs/eval/arena_watch_resnet_a_vs_resnet_b.yaml
+poetry run python -m mcchess.eval.arena configs/eval/arena_watch_resnet_a_vs_resnet_b.yaml
 ```
 
 The delay is for pacing printed moves only; policy-only bots do not spend that
@@ -236,6 +244,7 @@ Useful guides:
 - `docs/guides/INSTALL_DATA.md`
 - `docs/guides/GPU_POWER_LIMIT.md`
 - `docs/guides/HOW_TO_PLAY.md`
+- `docs/guides/STOCKFISH_ELO_EVAL.md`
 
 Build or filter datasets through the scripts in `scripts/` and the YAML configs
 under `configs/`. Large CUDA runs can use the optional tensor cache documented

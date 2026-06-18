@@ -1,0 +1,19 @@
+run_id: stockfish_uci_ladder_selfcheck
+output_dir: runs/external_stockfish/stockfish_uci_ladder_selfcheck
+stockfish_path: null
+seed: 0
+max_ply: 180
+skill_level: 20
+limit:
+  time: 1.0
+stockfish_elos:
+  - 1600
+  - 1700
+  - 1800
+  - 1900
+  - 2000
+  - 2100
+  - 2200
+  - 2300
+  - 2400
+  - 2500

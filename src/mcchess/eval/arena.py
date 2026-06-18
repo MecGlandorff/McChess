@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import datetime as dt
 import math
 import random
@@ -12,12 +13,16 @@ from pathlib import Path
 from typing import Any, Final
 
 import chess
+import yaml  # type: ignore[import-untyped]
 
 from mcchess.bots import Bot, MCTSBot, MaterialBot, NegamaxBot, PolicyOnlyBot, RandomLegalBot
+from mcchess.eval.common import git_commit as current_git_commit
+from mcchess.eval.common import load_yaml_mapping, write_json_atomic, write_text_atomic
+from mcchess.eval.openings import opening_protocol, normalize_opening_fens, starting_fen_for_game
+from mcchess.eval.schema import result_envelope
 
 DRAW_RULE: Final[str] = "python_chess_outcome_or_max_ply_draw"
 COLOR_POLICY: Final[str] = "alternating_agent_white_first"
-OPENING_PROTOCOL: Final[str] = "standard_initial_position"
 MoveCallback = Callable[[dict[str, Any]], None]
 
 
@@ -51,7 +56,7 @@ class BotConfig:
 class ArenaConfig:
     """Configuration for a fixed bot-vs-bot arena run."""
 
-    output_path: str
+    output_dir: str
     agent: BotConfig
     opponent: BotConfig
     run_id: str = "arena"
@@ -60,8 +65,12 @@ class ArenaConfig:
     max_ply: int = 160
     move_delay_seconds: float = 0.0
     print_moves: bool = False
+    opening_fens: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
+        if not self.output_dir:
+            raise ValueError("output_dir must not be empty")
+        object.__setattr__(self, "opening_fens", normalize_opening_fens(self.opening_fens))
         if self.num_games <= 0:
             raise ValueError("num_games must be positive")
         if self.max_ply <= 0:
@@ -86,6 +95,8 @@ class GameRecord:
     agent_score: float | None
     termination: str
     ply_count: int
+    opening_index: int | None
+    starting_fen: str
     final_fen: str
     moves: list[str]
     illegal_move: dict[str, str] | None = None
@@ -124,6 +135,8 @@ def play_game(
     game_index: int,
     agent_color: chess.Color,
     max_ply: int,
+    starting_fen: str = chess.STARTING_FEN,
+    opening_index: int | None = None,
     move_delay_seconds: float = 0.0,
     move_callback: MoveCallback | None = None,
 ) -> GameRecord:
@@ -133,7 +146,7 @@ def play_game(
     the official game state directly.
     """
 
-    board = chess.Board()
+    board = chess.Board(starting_fen)
     moves: list[str] = []
     white_name = agent.name if agent_color == chess.WHITE else opponent.name
     black_name = agent.name if agent_color == chess.BLACK else opponent.name
@@ -148,6 +161,8 @@ def play_game(
                 black_name=black_name,
                 board=board,
                 moves=moves,
+                opening_index=opening_index,
+                starting_fen=starting_fen,
                 outcome=outcome,
                 termination=outcome.termination.name.lower(),
             )
@@ -164,6 +179,8 @@ def play_game(
                 black_name=black_name,
                 board=board,
                 moves=moves,
+                opening_index=opening_index,
+                starting_fen=starting_fen,
                 termination="bot_error",
                 error=f"{type(exc).__name__}: {exc}",
             )
@@ -176,6 +193,8 @@ def play_game(
                 black_name=black_name,
                 board=board,
                 moves=moves,
+                opening_index=opening_index,
+                starting_fen=starting_fen,
                 termination="illegal_move",
                 illegal_move={
                     "bot": bot.name,
@@ -197,6 +216,7 @@ def play_game(
                     "uci": move.uci(),
                     "san": san,
                     "fen": board.fen(),
+                    "opening_index": opening_index,
                 }
             )
         if move_delay_seconds > 0.0:
@@ -209,12 +229,20 @@ def play_game(
         black_name=black_name,
         board=board,
         moves=moves,
+        opening_index=opening_index,
+        starting_fen=starting_fen,
         outcome=None,
         termination="max_ply",
     )
 
 
-def run_match(config: ArenaConfig, *, move_callback: MoveCallback | None = None) -> dict[str, Any]:
+def run_match(
+    config: ArenaConfig,
+    *,
+    move_callback: MoveCallback | None = None,
+    git_commit: str | None = None,
+    config_path: str | None = None,
+) -> dict[str, Any]:
     """Run an arena match and return a JSON-serializable result."""
 
     random.seed(config.seed)
@@ -230,12 +258,15 @@ def run_match(config: ArenaConfig, *, move_callback: MoveCallback | None = None)
 
     for game_index in range(config.num_games):
         agent_color = chess.WHITE if game_index % 2 == 0 else chess.BLACK
+        opening_index, starting_fen = starting_fen_for_game(config.opening_fens, game_index)
         game = play_game(
             agent,
             opponent,
             game_index=game_index,
             agent_color=agent_color,
             max_ply=config.max_ply,
+            opening_index=opening_index,
+            starting_fen=starting_fen,
             move_delay_seconds=config.move_delay_seconds,
             move_callback=move_callback,
         )
@@ -264,35 +295,115 @@ def run_match(config: ArenaConfig, *, move_callback: MoveCallback | None = None)
     completed_at = dt.datetime.now(dt.timezone.utc).isoformat()
     completed_games = wins + draws + losses
     score = (wins + 0.5 * draws) / completed_games if completed_games else 0.0
-    result = {
-        "run_id": config.run_id,
-        "status": status,
-        "seed": config.seed,
-        "num_games": config.num_games,
-        "games_completed": completed_games,
-        "wins": wins,
-        "draws": draws,
-        "losses": losses,
-        "score": score,
-        "illegal_moves": illegal_moves,
-        "max_ply": config.max_ply,
-        "move_delay_seconds": config.move_delay_seconds,
-        "print_moves": config.print_moves,
-        "draw_rule": DRAW_RULE,
-        "color_policy": COLOR_POLICY,
-        "opening_protocol": OPENING_PROTOCOL,
-        "agent": agent.name,
-        "opponent": opponent.name,
-        "agent_checkpoint": config.agent.checkpoint_path,
-        "opponent_checkpoint": config.opponent.checkpoint_path,
-        "mcts_budget": _match_mcts_budget(config),
-        "started_at": started_at,
-        "completed_at": completed_at,
-        "elapsed_seconds": time.perf_counter() - start_time,
-        "failure": failure,
-        "games": [asdict(game) for game in games],
-    }
-    return result
+    return result_envelope(
+        run_id=config.run_id,
+        run_type="arena",
+        status=status,
+        seed=config.seed,
+        started_at=started_at,
+        completed_at=completed_at,
+        elapsed_seconds=time.perf_counter() - start_time,
+        git_commit=git_commit,
+        config_path=config_path,
+        config=asdict(config),
+        protocol={
+            "max_ply": config.max_ply,
+            "move_delay_seconds": config.move_delay_seconds,
+            "print_moves": config.print_moves,
+            "draw_rule": DRAW_RULE,
+            "color_policy": COLOR_POLICY,
+            "opening_protocol": opening_protocol(config.opening_fens),
+            "opening_count": len(config.opening_fens) if config.opening_fens else 1,
+            "mcts_budget": _match_mcts_budget(config),
+        },
+        participants={
+            "agent": {"name": agent.name, "checkpoint_path": config.agent.checkpoint_path},
+            "opponent": {"name": opponent.name, "checkpoint_path": config.opponent.checkpoint_path},
+        },
+        summary={
+            "games_scheduled": config.num_games,
+            "games_completed": completed_games,
+            "wins": wins,
+            "draws": draws,
+            "losses": losses,
+            "score": score,
+            "illegal_moves": illegal_moves,
+            "failure": failure,
+        },
+        games=[asdict(game) for game in games],
+    )
+
+
+def load_config(path: str | Path) -> ArenaConfig:
+    """Load an arena YAML config."""
+
+    raw = load_yaml_mapping(path)
+    agent_raw = raw.pop("agent", None)
+    opponent_raw = raw.pop("opponent", None)
+    if not isinstance(agent_raw, dict):
+        raise ValueError("agent must be a YAML mapping")
+    if not isinstance(opponent_raw, dict):
+        raise ValueError("opponent must be a YAML mapping")
+    return ArenaConfig(
+        **raw,
+        agent=BotConfig(**agent_raw),
+        opponent=BotConfig(**opponent_raw),
+    )
+
+
+def write_artifacts(config: ArenaConfig, result: dict[str, Any]) -> Path:
+    """Write the arena result artifact and return its path."""
+
+    output_dir = Path(config.output_dir)
+    write_text_atomic(
+        output_dir / "config.yaml",
+        yaml.safe_dump(asdict(config), sort_keys=False),
+    )
+    result_path = output_dir / "result.json"
+    write_json_atomic(result_path, result)
+    config_path = result.get("run", {}).get("config_path")
+    if isinstance(config_path, str):
+        write_text_atomic(output_dir / "source_config_path.txt", config_path + "\n")
+    return result_path
+
+
+def print_move_event(event: dict[str, Any]) -> None:
+    """Print one live arena move event."""
+
+    print(
+        f"game {event['game_index'] + 1:03d} "
+        f"ply {event['ply']:03d} "
+        f"{event['color']} {event['bot']}: {event['san']} ({event['uci']})",
+        flush=True,
+    )
+
+
+def run_arena(config_path: str | Path) -> Path:
+    """Run an arena config and write schema-v2 artifacts."""
+
+    config_path = Path(config_path)
+    config = load_config(config_path)
+    result = run_match(
+        config,
+        move_callback=print_move_event if config.print_moves else None,
+        git_commit=current_git_commit(),
+        config_path=str(config_path),
+    )
+    result_path = write_artifacts(config, result)
+    print(f"saved arena result to {result_path}")
+    return result_path
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run a McChess bot-vs-bot arena.")
+    parser.add_argument("config", type=Path, help="YAML arena config.")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    run_arena(args.config)
+    return 0
 
 
 def _default_bot_name(config: BotConfig) -> str:
@@ -344,6 +455,8 @@ def _completed_record(
     board: chess.Board,
     moves: list[str],
     outcome: chess.Outcome | None,
+    opening_index: int | None,
+    starting_fen: str,
     termination: str,
 ) -> GameRecord:
     winner = outcome.winner if outcome is not None else None
@@ -360,6 +473,8 @@ def _completed_record(
         agent_score=agent_score,
         termination=termination,
         ply_count=len(moves),
+        opening_index=opening_index,
+        starting_fen=starting_fen,
         final_fen=board.fen(),
         moves=list(moves),
     )
@@ -374,6 +489,8 @@ def _failed_record(
     board: chess.Board,
     moves: list[str],
     termination: str,
+    opening_index: int | None,
+    starting_fen: str,
     illegal_move: dict[str, str] | None = None,
     error: str | None = None,
 ) -> GameRecord:
@@ -388,6 +505,8 @@ def _failed_record(
         agent_score=None,
         termination=termination,
         ply_count=len(moves),
+        opening_index=opening_index,
+        starting_fen=starting_fen,
         final_fen=board.fen(),
         moves=list(moves),
         illegal_move=illegal_move,
@@ -403,3 +522,7 @@ def _agent_score(winner: chess.Color | None, agent_color: chess.Color) -> float:
 
 def _color_name(color: chess.Color) -> str:
     return "white" if color == chess.WHITE else "black"
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

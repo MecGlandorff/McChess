@@ -1,5 +1,5 @@
 run_id: arena_resnet_b_policy_vs_mcts_50
-output_path: runs/eval/arena_resnet_b_policy_vs_mcts_50.json
+output_dir: runs/eval/arena_resnet_b_policy_vs_mcts_50
 seed: 0
 num_games: 20
 max_ply: 160

@@ -73,7 +73,8 @@ For arena results, also include:
 - model_config: `input_planes=18, channels=32, num_blocks=2, policy_size=4672, value_hidden_dim=64`
 - train_config: `batch_size=256, epochs=4, optimizer=AdamW, lr=8e-4, weight_decay=1e-3, value_weight=1.0`
 - eval_config: held-out test shard, first 40,000 positions, legal-masked top-k
-  via `scripts/eval_top1.py`; top-k metrics are computed over legal moves only
+  via `python -m mcchess.eval.supervised`; top-k metrics are computed over legal
+  moves only
 - seed: 20260601
 - git_commit: `f4674bb`
 - checkpoint_path: `runs/real_2013_01/checkpoint.pt`
