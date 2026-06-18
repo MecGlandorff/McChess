@@ -63,13 +63,19 @@ Leave that PowerShell window open while playing.
 Open:
 
 ```text
-http://127.0.0.1:8888/notebooks/notebooks/play_policy_bot.ipynb?token=mcchess
+http://127.0.0.1:8888/notebooks/play_policy_bot.ipynb?token=mcchess
 ```
 
 For the MCTS play notebook, open:
 
 ```text
-http://127.0.0.1:8888/notebooks/notebooks/play_mcts_bot.ipynb?token=mcchess
+http://127.0.0.1:8888/notebooks/play_mcts_bot.ipynb?token=mcchess
+```
+
+For an external Stockfish reference match with MCTS-200, open:
+
+```text
+http://127.0.0.1:8888/notebooks/mcts_200_vs_stockfish.ipynb?token=mcchess
 ```
 
 ## Run The Notebook
@@ -108,6 +114,51 @@ search depth. The notebook checks that the value stays between 200 and 400.
 
 MCTS play is slower than policy-only play. If CUDA is available, the notebook's
 default `INFERENCE_DEVICE = "auto"` may use it for model evaluation.
+
+## Play Stockfish
+
+`notebooks/mcts_200_vs_stockfish.ipynb` and `python -m mcchess.eval.stockfish`
+run the local ResNet-B MCTS-200 bot against a local Stockfish UCI binary. The
+module runner is the preferred route for reproducible saved artifacts. It
+alternates colors and saves JSON records under:
+
+```text
+runs/external_stockfish/
+```
+
+Install Stockfish and either put `stockfish` on `PATH` or set:
+
+```powershell
+$env:STOCKFISH_PATH = "C:\path\to\stockfish.exe"
+```
+
+Set the path on one line. In PowerShell, a copied path split across a prompt
+continuation is treated as a different path.
+
+Run the short benchmark from the terminal:
+
+```powershell
+poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts200_resnet_b_elo.yaml
+```
+
+Run the 200-game benchmark:
+
+```powershell
+poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts200_resnet_b_elo_200games.yaml
+```
+
+Add `--show` to open one Python window for the current board and one for the
+cumulative results table:
+
+```powershell
+poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts200_resnet_b_elo.yaml --show
+```
+
+The Stockfish `UCI_Elo` labels are handicap settings under the recorded search
+limit, not Lichess Elo, FIDE Elo, or a general engine-strength claim.
+
+This is an external reference benchmark. Do not use Stockfish moves,
+evaluations, game outcomes, or level settings as training labels.
 
 ## How To Move
 

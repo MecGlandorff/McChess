@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
 """Evaluate supervised checkpoint policy top-k and value metrics."""
 
 from __future__ import annotations
 
 import argparse
 import datetime as dt
-import json
 import random
 import time
 from dataclasses import asdict, dataclass
@@ -22,6 +20,9 @@ from torch.utils.data import DataLoader, Dataset
 from mcchess.board import BOARD_TENSOR_SHAPE, POLICY_SIZE, encode_board, legal_policy_mask
 from mcchess.data import iter_jsonl_samples
 from mcchess.data.dataset_builder import DatasetSample
+from mcchess.eval.common import git_commit as current_git_commit
+from mcchess.eval.common import load_yaml_mapping, write_json_atomic, write_text_atomic
+from mcchess.eval.schema import result_envelope
 from mcchess.model import load_policy_value_checkpoint
 
 
@@ -29,7 +30,8 @@ from mcchess.model import load_policy_value_checkpoint
 class SupervisedEvalConfig:
     checkpoint_path: str
     data_path: str
-    output_path: str
+    output_dir: str
+    run_id: str = "supervised_eval"
     dataset_manifest_path: str | None = None
     split: str = "test"
     seed: int = 0
@@ -42,6 +44,10 @@ class SupervisedEvalConfig:
     value_saturation_threshold: float = 0.95
 
     def __post_init__(self) -> None:
+        if not self.output_dir:
+            raise ValueError("output_dir must not be empty")
+        if not self.run_id:
+            raise ValueError("run_id must not be empty")
         if self.batch_size <= 0:
             raise ValueError("batch_size must be positive")
         if self.max_samples is not None and self.max_samples <= 0:
@@ -107,10 +113,7 @@ def _read_eval_samples(path: Path, *, max_samples: int | None) -> list[DatasetSa
 
 
 def load_config(path: str | Path) -> SupervisedEvalConfig:
-    config_path = Path(path)
-    raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-    if not isinstance(raw, dict):
-        raise ValueError(f"{config_path} must contain a YAML mapping")
+    raw = load_yaml_mapping(path)
     return SupervisedEvalConfig(**raw)
 
 
@@ -140,7 +143,12 @@ def make_loader(
 
 
 @torch.no_grad()
-def evaluate_checkpoint(config: SupervisedEvalConfig) -> dict[str, Any]:
+def evaluate_checkpoint(
+    config: SupervisedEvalConfig,
+    *,
+    git_commit: str | None = None,
+    config_path: str | None = None,
+) -> dict[str, Any]:
     set_seed(config.seed)
     loaded = load_policy_value_checkpoint(config.checkpoint_path, device=config.device)
     device = loaded.device
@@ -208,26 +216,7 @@ def evaluate_checkpoint(config: SupervisedEvalConfig) -> dict[str, Any]:
         saturation_threshold=config.value_saturation_threshold,
     )
 
-    return {
-        "status": "completed",
-        "started_at": started_at,
-        "completed_at": completed_at,
-        "elapsed_seconds": time.perf_counter() - start_time,
-        "checkpoint_path": str(config.checkpoint_path),
-        "checkpoint_epoch": loaded.metadata.epoch,
-        "checkpoint_saved_at": loaded.metadata.saved_at,
-        "checkpoint_completed_at": loaded.metadata.completed_at,
-        "checkpoint_metrics": loaded.metadata.metrics,
-        "dataset_path": str(config.data_path),
-        "dataset_manifest_path": config.dataset_manifest_path,
-        "split": config.split,
-        "seed": config.seed,
-        "device": str(device),
-        "batch_size": config.batch_size,
-        "max_samples": config.max_samples,
-        "sample_mode": "prefix",
-        "sample_count": sample_count,
-        "top_k": list(config.top_k),
+    metrics = {
         "policy_cross_entropy": float(accum["policy_ce_sum"]) / sample_count,
         "legal_masked_policy_cross_entropy": float(accum["legal_policy_ce_sum"]) / sample_count,
         "raw_argmax_legal_fraction": float(accum["raw_argmax_legal_count"]) / sample_count,
@@ -239,6 +228,53 @@ def evaluate_checkpoint(config: SupervisedEvalConfig) -> dict[str, Any]:
         },
         **value_metrics,
     }
+    return result_envelope(
+        run_id=config.run_id,
+        run_type="supervised",
+        status="completed",
+        seed=config.seed,
+        started_at=started_at,
+        completed_at=completed_at,
+        elapsed_seconds=time.perf_counter() - start_time,
+        git_commit=git_commit,
+        config_path=config_path,
+        config=asdict(config),
+        protocol={
+            "split": config.split,
+            "device": str(device),
+            "batch_size": config.batch_size,
+            "num_workers": config.num_workers,
+            "top_k": list(config.top_k),
+            "sample_mode": "prefix",
+            "value_near_zero_threshold": config.value_near_zero_threshold,
+            "value_saturation_threshold": config.value_saturation_threshold,
+        },
+        participants={
+            "checkpoint": {
+                "path": str(config.checkpoint_path),
+                "epoch": loaded.metadata.epoch,
+                "saved_at": loaded.metadata.saved_at,
+                "completed_at": loaded.metadata.completed_at,
+                "metrics": loaded.metadata.metrics,
+            }
+        },
+        samples={
+            "dataset_path": str(config.data_path),
+            "dataset_manifest_path": config.dataset_manifest_path,
+            "split": config.split,
+            "max_samples": config.max_samples,
+            "count": sample_count,
+        },
+        summary={
+            "sample_count": sample_count,
+            "policy_top1": metrics["raw_top_k_accuracy"].get("1"),
+            "legal_masked_policy_top1": metrics["legal_masked_top_k_accuracy"].get("1"),
+            "raw_argmax_legal_fraction": metrics["raw_argmax_legal_fraction"],
+            "model_mse": metrics["model_mse"],
+            "sign_accuracy_decisive": metrics["sign_accuracy_decisive"],
+        },
+        metrics=metrics,
+    )
 
 
 def _new_accumulators(top_k: tuple[int, ...]) -> dict[str, Any]:
@@ -449,23 +485,35 @@ def _bucket_summary(
     }
 
 
-def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = path.with_name(path.name + ".tmp")
-    tmp_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    tmp_path.replace(path)
-
-
 def run_evaluation(config_path: str | Path) -> Path:
     config_path = Path(config_path)
     config = load_config(config_path)
-    result = evaluate_checkpoint(config)
-    result["config_path"] = str(config_path)
-    result["config"] = asdict(config)
-    output_path = Path(config.output_path)
-    write_json_atomic(output_path, result)
-    print(f"saved evaluation to {output_path}")
-    return output_path
+    result = evaluate_checkpoint(
+        config,
+        git_commit=current_git_commit(),
+        config_path=str(config_path),
+    )
+    result_path = write_artifacts(config, result)
+    print(f"saved supervised evaluation to {result_path}")
+    return result_path
+
+
+def write_artifacts(config: SupervisedEvalConfig, result: dict[str, Any]) -> Path:
+    """Write supervised evaluation artifacts and return the result path."""
+
+    output_dir = Path(config.output_dir)
+    config_copy = asdict(config)
+    config_copy["top_k"] = list(config.top_k)
+    write_text_atomic(
+        output_dir / "config.yaml",
+        yaml.safe_dump(config_copy, sort_keys=False),
+    )
+    result_path = output_dir / "result.json"
+    write_json_atomic(result_path, result)
+    config_path = result.get("run", {}).get("config_path")
+    if isinstance(config_path, str):
+        write_text_atomic(output_dir / "source_config_path.txt", config_path + "\n")
+    return result_path
 
 
 def parse_args() -> argparse.Namespace:

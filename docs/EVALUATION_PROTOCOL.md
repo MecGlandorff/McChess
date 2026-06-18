@@ -35,9 +35,10 @@ Default arena:
 - record checkpoint and config identifiers
 - record wall-clock runtime when practical
 
-Use `scripts/run_arena.py` for bot-vs-bot arena evaluation. It reads a YAML
+Use `python -m mcchess.eval.arena` for bot-vs-bot arena evaluation. It reads a YAML
 config, alternates colors with the named agent playing White first, adjudicates
-nonterminal games as draws at `max_ply`, and writes one JSON result artifact.
+nonterminal games as draws at `max_ply`, and writes `result.json` under
+`output_dir`.
 Aggregate wins, draws, losses, and score are from the named `agent`
 perspective, not always from White's perspective.
 
@@ -45,7 +46,7 @@ perspective, not always from White's perspective.
 demos. It is not a compute budget and should not be interpreted as engine
 thinking time for policy-only bots.
 
-Recommended minimum:
+Recommended minimum for internal arena comparisons:
 
 - fast smoke: 20 games
 - development eval: 100 games
@@ -62,6 +63,9 @@ Acceptable protocols:
 - sampled opening positions saved to a manifest
 
 For reportable comparisons, record the exact opening source and ensure both agents play both colors from the same positions when practical.
+Arena and Stockfish benchmark configs may set `opening_fens` to a fixed list.
+Adjacent games reuse the same FEN while colors alternate, and result files store
+`opening_index` and `starting_fen` per game.
 
 ## Budget Types
 
@@ -113,9 +117,9 @@ score = (wins + 0.5 * draws) / games
 
 ## Supervised Checkpoint Evaluation
 
-Use `scripts/eval_top1.py` for held-out supervised policy/value evaluation. It
-reads a YAML config, evaluates a checkpoint against a JSONL shard, and writes a
-JSON result artifact.
+Use `python -m mcchess.eval.supervised` for held-out supervised policy/value
+evaluation. It reads a YAML config, evaluates a checkpoint against a JSONL
+shard, and writes `result.json` under `output_dir`.
 
 The JSONL shard is required for legal-masked policy metrics because the
 evaluator reconstructs each FEN and uses `python-chess` plus
@@ -134,8 +138,8 @@ The result JSON records:
   buckets
 
 For arena runs, `kind: mcts` uses a fixed simulation budget from the YAML
-config. The result JSON records that budget in `mcts_budget`; policy-only bots
-leave the corresponding side as `null`.
+config. The result JSON records that budget in `protocol.mcts_budget`;
+policy-only bots leave the corresponding side as `null`.
 
 Use validation data for tuning choices such as checkpoint selection,
 normalization variants, loss weights, or reranking. Use test data for the final
@@ -199,37 +203,75 @@ Model A is close to leading chess engines.
 
 unless the exact claim is supported by a documented protocol.
 
+## External Stockfish Benchmark
+
+Stockfish may be used as an external evaluation opponent only. Do not use
+Stockfish moves, evaluations, or game outcomes as training labels, dataset
+records, value targets, policy targets, distillation targets, or checkpoint
+selection targets.
+
+Use `python -m mcchess.eval.stockfish` with a YAML config for this benchmark.
+The short MCTS-200 config is `configs/eval/stockfish_mcts200_resnet_b_elo.yaml`.
+The 200-game report-scale config is
+`configs/eval/stockfish_mcts200_resnet_b_elo_200games.yaml`.
+
+The default protocol:
+
+- runs full-strength Stockfish sanity games first
+- alternates colors with McChess White first
+- runs paired UCI Elo handicap games from 1600 to 2500
+- records per-game White, Black, result, winner, winner name, and McChess score
+- records per-game starting FEN and opening index
+- excludes full-strength sanity games from Elo estimation
+- estimates a rough local McChess rating only from completed `UCI_Elo` games
+
+Report this result as a local Stockfish-UCI handicap benchmark estimate under
+the exact config and Stockfish search limit, for example `time=1.0s/move`. Do
+not describe it as Lichess Elo, FIDE Elo, or general engine strength.
+If setup fails after the config has loaded, the runner writes a schema-v2
+failed result with the setup error, then re-raises the exception.
+
+`python -m mcchess.eval.stockfish_ladder` may be used as a
+Stockfish-vs-Stockfish self-consistency check for adjacent `UCI_Elo` levels
+under the same local limit. It is not a calibration to Lichess, FIDE, CCRL, or
+McChess strength.
+
 ## Result JSON Fields
 
-Arena result files should include:
+Evaluation result files use schema version 2 and should include:
 
 ```json
 {
-  "run_id": "",
-  "status": "completed",
-  "seed": 0,
-  "num_games": 0,
-  "games_completed": 0,
-  "wins": 0,
-  "draws": 0,
-  "losses": 0,
-  "score": 0.0,
-  "illegal_moves": 0,
-  "max_ply": 0,
-  "move_delay_seconds": 0.0,
-  "draw_rule": "",
-  "color_policy": "",
-  "opening_protocol": "",
-  "agent": "",
-  "opponent": "",
-  "agent_checkpoint": null,
-  "opponent_checkpoint": null,
-  "mcts_budget": null,
-  "git_commit": null,
-  "config_path": "",
-  "eval_config": "",
-  "started_at": "",
-  "completed_at": "",
+  "schema_version": 2,
+  "run": {
+    "id": "",
+    "type": "arena",
+    "status": "completed",
+    "seed": 0,
+    "started_at": "",
+    "completed_at": "",
+    "elapsed_seconds": 0.0,
+    "git_commit": null,
+    "config_path": ""
+  },
+  "protocol": {
+    "max_ply": 0,
+    "draw_rule": "",
+    "color_policy": "",
+    "opening_protocol": "",
+    "mcts_budget": null
+  },
+  "participants": {},
+  "summary": {
+    "games_scheduled": 0,
+    "games_completed": 0,
+    "wins": 0,
+    "draws": 0,
+    "losses": 0,
+    "score": 0.0,
+    "illegal_moves": 0
+  },
+  "config": {},
   "games": []
 }
 ```

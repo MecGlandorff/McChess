@@ -1,5 +1,5 @@
 run_id: arena_watch_resnet_a_vs_resnet_b
-output_path: runs/eval/arena_watch_resnet_a_vs_resnet_b.json
+output_dir: runs/eval/arena_watch_resnet_a_vs_resnet_b
 seed: 0
 num_games: 2
 max_ply: 160
