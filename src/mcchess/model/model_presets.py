@@ -8,14 +8,17 @@ from mcchess.model.network import PolicyValueResNet
 from mcchess.model.preset import ModelPreset
 from mcchess.model.resnet_a import RESNET_A
 from mcchess.model.resnet_b import RESNET_B
+from mcchess.model.resnet_c import RESNET_C
 
-_CANONICAL_PRESETS = (RESNET_A, RESNET_B)
+_CANONICAL_PRESETS = (RESNET_A, RESNET_B, RESNET_C)
 _MODEL_PRESETS_BY_NAME = MappingProxyType(
     {
         RESNET_A.name: RESNET_A,
         "resnet-a": RESNET_A,
         RESNET_B.name: RESNET_B,
         "resnet-b": RESNET_B,
+        RESNET_C.name: RESNET_C,
+        "resnet-c": RESNET_C,
     }
 )
 
