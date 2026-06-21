@@ -2,6 +2,17 @@
 
 Training configs belong here.
 
+Training configs may set `resume_from_checkpoint` to continue from a saved
+checkpoint. In resume mode, `epochs` is the final target epoch: resuming from an
+epoch-3 checkpoint with `epochs: 30` trains epochs 4 through 30. New checkpoints
+save optimizer state and `global_step`; older checkpoints can still warm-start
+model weights, but the optimizer is reset.
+
+For larger BatchNorm runs, `exclude_norm_bias_from_weight_decay: true` keeps
+AdamW weight decay off normalization parameters and biases. `warmup_steps`,
+`lr_scheduler: cosine`, and `min_learning_rate` provide a simple per-step
+warmup/cosine schedule.
+
 Current development configs:
 
 - `tiny_loss_curve.yaml`: small CPU-friendly supervised run over a bounded
@@ -38,3 +49,7 @@ Current development configs:
 - `lichess_2026_05_2000plus_resnet_c_epoch3_cached_batchmetrics.yaml`: cached
   3-epoch ResNet-C BatchNorm pilot over the same May 2026 Lichess 2000+
   filtered dataset, seed, batch size, and optimizer settings.
+- `lichess_2026_05_2000plus_resnet_c_epoch30_resume_cached_batchmetrics.yaml`:
+  resume config that starts from the 3-epoch ResNet-C pilot checkpoint and
+  trains through epoch 30 with cosine LR scheduling and no weight decay on
+  BatchNorm or bias parameters.

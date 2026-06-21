@@ -229,9 +229,11 @@ runs at epoch boundaries by default.
 Checkpoint files use PyTorch serialization and contain:
 
 - `model_state_dict`
+- `optimizer_state_dict` for checkpoints written by the current trainer
 - `model_config`
 - `train_config`
 - `epoch`
+- `global_step`
 - `metrics`
 - `saved_at`
 - `completed_at`
@@ -240,6 +242,11 @@ The trainer refreshes `batch_loss.svg` while an epoch is running. It writes
 `checkpoint_epoch_###.pt`, `checkpoint_latest.pt`, and `loss.svg` after each
 completed epoch. `checkpoint.pt` is the final completed-run checkpoint and is
 written only after all configured epochs finish.
+
+Training configs may set `resume_from_checkpoint`; in that mode `epochs` is the
+final target epoch and training starts from the next epoch after the checkpoint.
+Older checkpoints without optimizer state can still be used as model-weight
+warm starts, but AdamW moments are reset.
 
 ## Playable Bots
 

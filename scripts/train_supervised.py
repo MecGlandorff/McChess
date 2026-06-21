@@ -6,13 +6,15 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import math
 import random
 import shutil
+import sys
 import time
 from collections.abc import Callable, Sized
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import numpy as np
 import torch
@@ -22,6 +24,18 @@ from tqdm.auto import tqdm
 
 from mcchess.data import SupervisedChessDataset, SupervisedTensorCacheDataset
 from mcchess.model import PolicyValueResNet, ResNetConfig, get_model_preset, policy_value_loss
+
+SchedulerName = Literal["none", "cosine"]
+_NORM_MODULE_TYPES = (
+    torch.nn.BatchNorm1d,
+    torch.nn.BatchNorm2d,
+    torch.nn.BatchNorm3d,
+    torch.nn.GroupNorm,
+    torch.nn.LayerNorm,
+    torch.nn.InstanceNorm1d,
+    torch.nn.InstanceNorm2d,
+    torch.nn.InstanceNorm3d,
+)
 
 
 @dataclass(frozen=True)
@@ -40,9 +54,14 @@ class SupervisedTrainConfig:
     max_val_samples: int | None = None
     learning_rate: float = 1e-3
     weight_decay: float = 1e-4
+    exclude_norm_bias_from_weight_decay: bool = False
     value_weight: float = 1.0
+    lr_scheduler: SchedulerName = "none"
+    warmup_steps: int = 0
+    min_learning_rate: float = 0.0
     num_workers: int = 0
     log_every_steps: int = 20
+    resume_from_checkpoint: str | None = None
     model_preset: str | None = None
     model: ResNetConfig | None = None
 
@@ -59,8 +78,18 @@ class SupervisedTrainConfig:
             raise ValueError("learning_rate must be positive")
         if self.weight_decay < 0:
             raise ValueError("weight_decay must be non-negative")
+        if not isinstance(self.exclude_norm_bias_from_weight_decay, bool):
+            raise ValueError("exclude_norm_bias_from_weight_decay must be a boolean")
         if self.value_weight < 0:
             raise ValueError("value_weight must be non-negative")
+        if self.lr_scheduler not in ("none", "cosine"):
+            raise ValueError("lr_scheduler must be 'none' or 'cosine'")
+        if self.warmup_steps < 0:
+            raise ValueError("warmup_steps must be non-negative")
+        if self.min_learning_rate < 0:
+            raise ValueError("min_learning_rate must be non-negative")
+        if self.min_learning_rate > self.learning_rate:
+            raise ValueError("min_learning_rate must not exceed learning_rate")
         if self.num_workers < 0:
             raise ValueError("num_workers must be non-negative")
         if self.log_every_steps < 0:
@@ -92,6 +121,43 @@ class BatchMetrics:
     running_train_policy_loss: float
     running_train_value_loss: float
     elapsed_seconds: float
+
+
+@dataclass(frozen=True)
+class LearningRateSchedule:
+    """Step-based learning-rate schedule used by the supervised trainer."""
+
+    name: SchedulerName
+    base_learning_rate: float
+    min_learning_rate: float
+    warmup_steps: int
+    total_steps: int
+
+    def learning_rate_for_step(self, step: int) -> float:
+        if self.total_steps <= 0:
+            raise ValueError("total_steps must be positive")
+        if step <= 0:
+            raise ValueError("step must be positive")
+        if self.warmup_steps > 0 and step <= self.warmup_steps:
+            return self.base_learning_rate * step / self.warmup_steps
+        if self.name == "none":
+            return self.base_learning_rate
+
+        decay_steps = max(1, self.total_steps - self.warmup_steps)
+        decay_step = min(max(0, step - self.warmup_steps), decay_steps)
+        cosine = 0.5 * (1.0 + math.cos(math.pi * decay_step / decay_steps))
+        return self.min_learning_rate + (
+            self.base_learning_rate - self.min_learning_rate
+        ) * cosine
+
+
+@dataclass(frozen=True)
+class ResumeState:
+    """State restored from a supervised training checkpoint."""
+
+    epoch: int
+    global_step: int
+    optimizer_restored: bool
 
 
 def load_config(path: str | Path) -> SupervisedTrainConfig:
@@ -183,6 +249,74 @@ def make_loader(
     )
 
 
+def make_optimizer(
+    model: torch.nn.Module,
+    *,
+    learning_rate: float,
+    weight_decay: float,
+    exclude_norm_bias_from_weight_decay: bool,
+) -> torch.optim.Optimizer:
+    """Build AdamW, optionally excluding normalization and bias params from decay."""
+
+    if not exclude_norm_bias_from_weight_decay:
+        return torch.optim.AdamW(
+            model.parameters(),
+            lr=learning_rate,
+            weight_decay=weight_decay,
+        )
+
+    decay_params: list[torch.nn.Parameter] = []
+    no_decay_params: list[torch.nn.Parameter] = []
+    seen_parameter_ids: set[int] = set()
+    for module in model.modules():
+        is_norm = isinstance(module, _NORM_MODULE_TYPES)
+        for name, parameter in module.named_parameters(recurse=False):
+            if not parameter.requires_grad:
+                continue
+            parameter_id = id(parameter)
+            if parameter_id in seen_parameter_ids:
+                raise RuntimeError(
+                    f"parameter {name} was assigned to multiple optimizer groups"
+                )
+            seen_parameter_ids.add(parameter_id)
+            if is_norm or name.endswith("bias") or parameter.ndim <= 1:
+                no_decay_params.append(parameter)
+            else:
+                decay_params.append(parameter)
+
+    expected_parameter_count = sum(
+        1 for parameter in model.parameters() if parameter.requires_grad
+    )
+    if len(seen_parameter_ids) != expected_parameter_count:
+        raise RuntimeError("not all trainable parameters were assigned to optimizer groups")
+
+    param_groups: list[dict[str, Any]] = []
+    if decay_params:
+        param_groups.append({"params": decay_params, "weight_decay": weight_decay})
+    if no_decay_params:
+        param_groups.append({"params": no_decay_params, "weight_decay": 0.0})
+    return torch.optim.AdamW(param_groups, lr=learning_rate)
+
+
+def make_learning_rate_schedule(
+    config: SupervisedTrainConfig,
+    *,
+    steps_per_epoch: int,
+) -> LearningRateSchedule:
+    return LearningRateSchedule(
+        name=config.lr_scheduler,
+        base_learning_rate=config.learning_rate,
+        min_learning_rate=config.min_learning_rate,
+        warmup_steps=config.warmup_steps,
+        total_steps=steps_per_epoch * config.epochs,
+    )
+
+
+def set_optimizer_learning_rate(optimizer: torch.optim.Optimizer, learning_rate: float) -> None:
+    for group in optimizer.param_groups:
+        group["lr"] = learning_rate
+
+
 def train_one_epoch(
     model: PolicyValueResNet,
     loader: DataLoader,
@@ -193,6 +327,7 @@ def train_one_epoch(
     epoch: int,
     log_every_steps: int,
     global_step_start: int = 0,
+    lr_schedule: LearningRateSchedule | None = None,
     batch_metrics_callback: Callable[[BatchMetrics], None] | None = None,
 ) -> tuple[float, float, float, int]:
     model.train()
@@ -225,6 +360,12 @@ def train_one_epoch(
             value_weight=value_weight,
         )
         losses.total.backward()
+        next_global_step = global_step + 1
+        if lr_schedule is not None:
+            set_optimizer_learning_rate(
+                optimizer,
+                lr_schedule.learning_rate_for_step(next_global_step),
+            )
         optimizer.step()
 
         batch_size = int(board.shape[0])
@@ -232,7 +373,7 @@ def train_one_epoch(
         total_loss += losses.total.item() * batch_size
         policy_loss += losses.policy.item() * batch_size
         value_loss += losses.value.item() * batch_size
-        global_step += 1
+        global_step = next_global_step
 
         if log_every_steps == 0 or step % log_every_steps == 0 or step == len(loader):
             running_total = total_loss / total_samples
@@ -334,19 +475,23 @@ def write_jsonl(path: Path, payload: dict[str, Any]) -> None:
 def build_checkpoint(
     model: PolicyValueResNet,
     model_config: ResNetConfig,
+    optimizer: torch.optim.Optimizer,
     config: SupervisedTrainConfig,
     device: torch.device,
     *,
     epoch: int,
+    global_step: int,
     metrics: EpochMetrics,
     saved_at: str,
     completed_at: str | None,
 ) -> dict[str, Any]:
     return {
         "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
         "model_config": asdict(model_config),
         "train_config": json_ready_config(config, device),
         "epoch": epoch,
+        "global_step": global_step,
         "metrics": asdict(metrics),
         "saved_at": saved_at,
         "completed_at": completed_at,
@@ -363,6 +508,82 @@ def write_text_atomic(path: Path, text: str) -> None:
     tmp_path = path.with_name(path.name + ".tmp")
     tmp_path.write_text(text, encoding="utf-8")
     tmp_path.replace(path)
+
+
+def load_epoch_metrics(path: Path) -> list[EpochMetrics]:
+    if not path.exists():
+        return []
+    return [
+        EpochMetrics(**json.loads(line))
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
+def load_batch_metrics(path: Path) -> list[BatchMetrics]:
+    if not path.exists():
+        return []
+    return [
+        BatchMetrics(**json.loads(line))
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
+def load_resume_state(
+    checkpoint_path: str | Path,
+    *,
+    model: PolicyValueResNet,
+    model_config: ResNetConfig,
+    optimizer: torch.optim.Optimizer,
+    device: torch.device,
+    steps_per_epoch: int,
+) -> ResumeState:
+    path = Path(checkpoint_path)
+    raw = torch.load(path, map_location=device)
+    if not isinstance(raw, dict):
+        raise ValueError(f"{path} must contain a checkpoint dictionary")
+
+    raw_model_config = raw.get("model_config")
+    if not isinstance(raw_model_config, dict):
+        raise ValueError(f"{path} missing model_config")
+    checkpoint_model_config = ResNetConfig(**raw_model_config)
+    if checkpoint_model_config != model_config:
+        raise ValueError(
+            f"{path} model_config does not match the current training config"
+        )
+
+    state_dict = raw.get("model_state_dict")
+    if not isinstance(state_dict, dict):
+        raise ValueError(f"{path} missing model_state_dict")
+    model.load_state_dict(cast(dict[str, torch.Tensor], state_dict))
+
+    optimizer_restored = False
+    optimizer_state = raw.get("optimizer_state_dict")
+    if isinstance(optimizer_state, dict):
+        try:
+            optimizer.load_state_dict(optimizer_state)
+            optimizer_restored = True
+        except ValueError as exc:
+            print(
+                f"warning: optimizer state from {path} was not restored: {exc}",
+                file=sys.stderr,
+            )
+
+    epoch_raw = raw.get("epoch")
+    if not isinstance(epoch_raw, int):
+        raise ValueError(f"{path} missing integer epoch")
+    global_step_raw = raw.get("global_step")
+    global_step = (
+        global_step_raw
+        if isinstance(global_step_raw, int)
+        else epoch_raw * steps_per_epoch
+    )
+    return ResumeState(
+        epoch=epoch_raw,
+        global_step=global_step,
+        optimizer_restored=optimizer_restored,
+    )
 
 
 def write_loss_svg(metrics: list[EpochMetrics], output_path: Path) -> None:
@@ -574,9 +795,15 @@ def write_batch_loss_svg(
     write_text_atomic(output_path, svg)
 
 
-def run_training(config_path: str | Path) -> Path:
+def run_training(
+    config_path: str | Path,
+    *,
+    resume_from_checkpoint: str | Path | None = None,
+) -> Path:
     config_path = Path(config_path)
     config = load_config(config_path)
+    if resume_from_checkpoint is not None:
+        config = replace(config, resume_from_checkpoint=str(resume_from_checkpoint))
     device = resolve_device(config.device)
     set_seed(config.seed)
 
@@ -620,11 +847,13 @@ def run_training(config_path: str | Path) -> Path:
 
     model_config = config.model or ResNetConfig()
     model = PolicyValueResNet(model_config).to(device)
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=config.learning_rate,
+    optimizer = make_optimizer(
+        model,
+        learning_rate=config.learning_rate,
         weight_decay=config.weight_decay,
+        exclude_norm_bias_from_weight_decay=config.exclude_norm_bias_from_weight_decay,
     )
+    lr_schedule = make_learning_rate_schedule(config, steps_per_epoch=len(train_loader))
 
     status_path = output_dir / "status.json"
     final_checkpoint_path = output_dir / "checkpoint.pt"
@@ -635,6 +864,26 @@ def run_training(config_path: str | Path) -> Path:
     started_at = dt.datetime.now(dt.timezone.utc).isoformat()
     train_sample_count = len(cast(Sized, train_dataset))
     val_sample_count = len(cast(Sized, val_dataset)) if val_dataset is not None else 0
+    resume_state: ResumeState | None = None
+    if config.resume_from_checkpoint is not None:
+        resume_state = load_resume_state(
+            config.resume_from_checkpoint,
+            model=model,
+            model_config=model_config,
+            optimizer=optimizer,
+            device=device,
+            steps_per_epoch=len(train_loader),
+        )
+        if resume_state.epoch >= config.epochs:
+            raise ValueError(
+                "resume checkpoint epoch must be lower than configured epochs"
+            )
+
+    initial_latest_checkpoint_path = (
+        config.resume_from_checkpoint
+        if resume_state is not None and config.resume_from_checkpoint is not None
+        else str(latest_checkpoint_path)
+    )
     status: dict[str, Any] = {
         "status": "running",
         "started_at": started_at,
@@ -643,8 +892,10 @@ def run_training(config_path: str | Path) -> Path:
         "metrics_path": str(output_dir / "metrics.jsonl"),
         "batch_metrics_path": str(batch_metrics_path),
         "checkpoint_path": str(final_checkpoint_path),
-        "latest_checkpoint_path": str(latest_checkpoint_path),
-        "latest_epoch_checkpoint_path": None,
+        "latest_checkpoint_path": initial_latest_checkpoint_path,
+        "latest_epoch_checkpoint_path": (
+            config.resume_from_checkpoint if resume_state is not None else None
+        ),
         "epoch_checkpoint_pattern": str(output_dir / "checkpoint_epoch_{epoch:03d}.pt"),
         "loss_plot_path": str(loss_plot_path),
         "batch_loss_plot_path": str(batch_loss_plot_path),
@@ -654,9 +905,19 @@ def run_training(config_path: str | Path) -> Path:
         "seed": config.seed,
         "device": str(device),
         "pin_memory": device.type == "cuda",
+        "resume_from_checkpoint": config.resume_from_checkpoint,
+        "resumed_from_epoch": resume_state.epoch if resume_state is not None else None,
+        "resumed_global_step": resume_state.global_step if resume_state is not None else None,
+        "optimizer_restored": (
+            resume_state.optimizer_restored if resume_state is not None else None
+        ),
+        "lr_scheduler": config.lr_scheduler,
+        "warmup_steps": config.warmup_steps,
+        "min_learning_rate": config.min_learning_rate,
+        "exclude_norm_bias_from_weight_decay": config.exclude_norm_bias_from_weight_decay,
         "train_samples": train_sample_count,
         "val_samples": val_sample_count,
-        "last_completed_epoch": 0,
+        "last_completed_epoch": resume_state.epoch if resume_state is not None else 0,
     }
     status_path.write_text(json.dumps(status, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
@@ -665,14 +926,37 @@ def run_training(config_path: str | Path) -> Path:
         + (f", validating on {val_sample_count} samples" if val_dataset is not None else "")
     )
     print(f"device={device} epochs={config.epochs} batch_size={config.batch_size}")
+    if config.resume_from_checkpoint is not None and resume_state is not None:
+        restored_text = (
+            "restored optimizer" if resume_state.optimizer_restored else "reset optimizer"
+        )
+        print(
+            f"resuming from epoch {resume_state.epoch} "
+            f"global_step={resume_state.global_step} ({restored_text})"
+        )
+    print(
+        f"lr={config.learning_rate:g} scheduler={config.lr_scheduler} "
+        f"warmup_steps={config.warmup_steps} min_lr={config.min_learning_rate:g}"
+    )
 
     metrics_path = output_dir / "metrics.jsonl"
-    metrics_path.write_text("", encoding="utf-8")
-    batch_metrics_path.write_text("", encoding="utf-8")
+    if resume_state is None:
+        metrics_path.write_text("", encoding="utf-8")
+        batch_metrics_path.write_text("", encoding="utf-8")
+    else:
+        metrics_path.touch()
+        batch_metrics_path.touch()
     run_start = time.perf_counter()
-    epoch_metrics: list[EpochMetrics] = []
-    batch_metrics: list[BatchMetrics] = []
-    global_step = 0
+    epoch_metrics = load_epoch_metrics(metrics_path) if resume_state is not None else []
+    batch_metrics = load_batch_metrics(batch_metrics_path) if resume_state is not None else []
+    global_step = resume_state.global_step if resume_state is not None else 0
+    if batch_metrics:
+        global_step = max(global_step, batch_metrics[-1].global_step)
+    if config.warmup_steps > 0 or config.lr_scheduler != "none":
+        set_optimizer_learning_rate(
+            optimizer,
+            lr_schedule.learning_rate_for_step(max(1, global_step)),
+        )
 
     def record_batch_metrics(metrics: BatchMetrics) -> None:
         batch_metrics.append(metrics)
@@ -680,7 +964,8 @@ def run_training(config_path: str | Path) -> Path:
         write_batch_loss_svg(batch_metrics, epoch_metrics, batch_loss_plot_path)
 
     try:
-        for epoch in range(1, config.epochs + 1):
+        start_epoch = resume_state.epoch + 1 if resume_state is not None else 1
+        for epoch in range(start_epoch, config.epochs + 1):
             epoch_start = time.perf_counter()
             train_total, train_policy, train_value, global_step = train_one_epoch(
                 model,
@@ -691,6 +976,7 @@ def run_training(config_path: str | Path) -> Path:
                 epoch=epoch,
                 log_every_steps=config.log_every_steps,
                 global_step_start=global_step,
+                lr_schedule=lr_schedule,
                 batch_metrics_callback=record_batch_metrics,
             )
             val_total: float | None = None
@@ -722,9 +1008,11 @@ def run_training(config_path: str | Path) -> Path:
             checkpoint = build_checkpoint(
                 model,
                 model_config,
+                optimizer,
                 config,
                 device,
                 epoch=epoch,
+                global_step=global_step,
                 metrics=metrics,
                 saved_at=saved_at,
                 completed_at=None,
@@ -734,6 +1022,7 @@ def run_training(config_path: str | Path) -> Path:
             write_loss_svg(epoch_metrics, loss_plot_path)
             write_batch_loss_svg(batch_metrics, epoch_metrics, batch_loss_plot_path)
             status["last_completed_epoch"] = epoch
+            status["latest_checkpoint_path"] = str(latest_checkpoint_path)
             status["latest_epoch_checkpoint_path"] = str(epoch_checkpoint_path)
             status["elapsed_seconds"] = time.perf_counter() - run_start
             status_path.write_text(
@@ -758,9 +1047,11 @@ def run_training(config_path: str | Path) -> Path:
         final_checkpoint = build_checkpoint(
             model,
             model_config,
+            optimizer,
             config,
             device,
             epoch=epoch_metrics[-1].epoch,
+            global_step=global_step,
             metrics=epoch_metrics[-1],
             saved_at=completed_at,
             completed_at=completed_at,
@@ -793,12 +1084,20 @@ def run_training(config_path: str | Path) -> Path:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train the supervised McChess baseline.")
     parser.add_argument("config", type=Path, help="YAML training config.")
+    parser.add_argument(
+        "--resume-from-checkpoint",
+        type=Path,
+        help="Resume weights and optimizer state from a supervised training checkpoint.",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    run_training(args.config)
+    run_training(
+        args.config,
+        resume_from_checkpoint=args.resume_from_checkpoint,
+    )
     return 0
 
 

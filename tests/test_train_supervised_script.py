@@ -11,7 +11,7 @@ import torch
 import yaml
 
 from mcchess.board import move_to_index
-from mcchess.model import RESNET_B
+from mcchess.model import RESNET_B, PolicyValueResNet, ResNetConfig
 
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "train_supervised.py"
@@ -111,6 +111,68 @@ def test_load_config_accepts_model_preset(tmp_path: Path) -> None:
     assert loaded.model == RESNET_B.config
 
 
+def test_learning_rate_schedule_supports_warmup_and_cosine() -> None:
+    script = load_script_module()
+    schedule = script.LearningRateSchedule(
+        name="cosine",
+        base_learning_rate=0.01,
+        min_learning_rate=0.001,
+        warmup_steps=2,
+        total_steps=6,
+    )
+
+    assert schedule.learning_rate_for_step(1) == pytest.approx(0.005)
+    assert schedule.learning_rate_for_step(2) == pytest.approx(0.01)
+    assert schedule.learning_rate_for_step(6) == pytest.approx(0.001)
+
+
+def test_make_optimizer_can_exclude_norm_and_bias_from_weight_decay() -> None:
+    script = load_script_module()
+    model = PolicyValueResNet(
+        ResNetConfig(
+            channels=4,
+            num_blocks=1,
+            value_hidden_dim=8,
+            normalization="batchnorm",
+        )
+    )
+
+    optimizer = script.make_optimizer(
+        model,
+        learning_rate=0.001,
+        weight_decay=0.01,
+        exclude_norm_bias_from_weight_decay=True,
+    )
+
+    weight_decays = sorted(group["weight_decay"] for group in optimizer.param_groups)
+    assert weight_decays == [0.0, 0.01]
+
+    grouped_parameter_ids = [
+        id(parameter)
+        for group in optimizer.param_groups
+        for parameter in group["params"]
+    ]
+    trainable_parameter_ids = [
+        id(parameter)
+        for parameter in model.parameters()
+        if parameter.requires_grad
+    ]
+    assert len(grouped_parameter_ids) == len(set(grouped_parameter_ids))
+    assert set(grouped_parameter_ids) == set(trainable_parameter_ids)
+
+    no_decay_group = next(
+        group for group in optimizer.param_groups if group["weight_decay"] == 0.0
+    )
+    no_decay_parameter_ids = {id(parameter) for parameter in no_decay_group["params"]}
+    batch_norm = model.stem[1]
+    assert isinstance(batch_norm, torch.nn.BatchNorm2d)
+    assert id(batch_norm.weight) in no_decay_parameter_ids
+    assert id(batch_norm.bias) in no_decay_parameter_ids
+    policy_linear = model.policy_head[4]
+    assert isinstance(policy_linear, torch.nn.Linear)
+    assert id(policy_linear.bias) in no_decay_parameter_ids
+
+
 def test_load_config_rejects_ambiguous_model_and_preset(tmp_path: Path) -> None:
     script = load_script_module()
     config_path = tmp_path / "config.yaml"
@@ -204,12 +266,55 @@ def test_supervised_training_script_writes_artifacts(tmp_path: Path) -> None:
     assert checkpoint["model_config"]["channels"] == 4
     assert checkpoint["train_config"]["seed"] == 7
     assert checkpoint["epoch"] == 1
+    assert checkpoint["global_step"] == 2
+    assert isinstance(checkpoint["optimizer_state_dict"], dict)
     assert checkpoint["metrics"]["epoch"] == 1
     assert checkpoint["completed_at"] is not None
 
     latest_checkpoint = torch.load(output_dir / "checkpoint_latest.pt", map_location="cpu")
     assert latest_checkpoint["epoch"] == 1
     assert latest_checkpoint["completed_at"] == checkpoint["completed_at"]
+
+
+def test_supervised_training_script_resumes_from_checkpoint(tmp_path: Path) -> None:
+    script = load_script_module()
+    train_path = tmp_path / "train.jsonl"
+    val_path = tmp_path / "val.jsonl"
+    first_output_dir = tmp_path / "run_first"
+    resume_output_dir = tmp_path / "run_resume"
+    first_config_path = tmp_path / "first.yaml"
+    resume_config_path = tmp_path / "resume.yaml"
+    write_shard(train_path, count=4)
+    write_shard(val_path, count=2)
+    write_train_config(
+        first_config_path,
+        train_path=train_path,
+        val_path=val_path,
+        output_dir=first_output_dir,
+        epochs=1,
+    )
+    script.run_training(first_config_path)
+
+    resume_config = yaml.safe_load(first_config_path.read_text(encoding="utf-8"))
+    resume_config["output_dir"] = str(resume_output_dir)
+    resume_config["epochs"] = 2
+    resume_config["resume_from_checkpoint"] = str(first_output_dir / "checkpoint_latest.pt")
+    resume_config["lr_scheduler"] = "cosine"
+    resume_config["warmup_steps"] = 1
+    resume_config["min_learning_rate"] = 0.0001
+    resume_config_path.write_text(yaml.safe_dump(resume_config), encoding="utf-8")
+
+    script.run_training(resume_config_path)
+
+    checkpoint = torch.load(resume_output_dir / "checkpoint.pt", map_location="cpu")
+    assert checkpoint["epoch"] == 2
+    assert checkpoint["global_step"] == 4
+    status = json.loads((resume_output_dir / "status.json").read_text(encoding="utf-8"))
+    assert status["resumed_from_epoch"] == 1
+    assert status["resumed_global_step"] == 2
+    assert status["optimizer_restored"] is True
+    assert status["last_completed_epoch"] == 2
+    assert status["latest_checkpoint_path"] == str(resume_output_dir / "checkpoint_latest.pt")
 
 
 def test_supervised_training_script_keeps_epoch_checkpoint_after_failure(
