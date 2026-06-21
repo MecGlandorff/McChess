@@ -1,0 +1,30 @@
+# Resume ResNet-C from the 3-epoch pilot and train to epoch 30.
+#
+# `epochs` is the final target epoch. With the checkpoint below, the trainer
+# starts at epoch 4 and stops after epoch 30. Checkpoints written by the current
+# trainer restore optimizer state and global_step; older checkpoints restore
+# model weights and reset AdamW optimizer moments.
+
+train_path: data/processed/lichess_2026_05_2000plus/train.jsonl
+val_path: data/processed/lichess_2026_05_2000plus/val.jsonl
+train_cache_dir: data/tensor_cache/lichess_2026_05_2000plus/train
+val_cache_dir: data/tensor_cache/lichess_2026_05_2000plus/val
+dataset_manifest_path: data/manifests/lichess_2026_05_2000plus_manifest.json
+output_dir: runs/lichess_2026_05_2000plus_resnet_c_epoch30_resume_cached_batchmetrics
+resume_from_checkpoint: runs/lichess_2026_05_2000plus_resnet_c_epoch3_cached_batchmetrics/checkpoint_latest.pt
+
+seed: 20260501
+device: cuda
+batch_size: 2048
+epochs: 30
+learning_rate: 0.0005
+weight_decay: 0.001
+exclude_norm_bias_from_weight_decay: true
+lr_scheduler: cosine
+warmup_steps: 2000
+min_learning_rate: 0.00005
+value_weight: 1.0
+num_workers: 4
+log_every_steps: 50
+
+model_preset: resnet_c

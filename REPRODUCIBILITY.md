@@ -29,6 +29,11 @@ Supervised training writes recoverable artifacts after every completed epoch:
 - `loss.svg`, refreshed after each completed epoch
 - `checkpoint.pt`, written only after the configured run completes
 
+Current supervised checkpoints also store `optimizer_state_dict` and
+`global_step`, so a later run can resume optimizer moments and epoch numbering
+when `resume_from_checkpoint` is set. Older checkpoints without optimizer state
+remain usable as model-weight warm starts, but the optimizer is reset.
+
 If a run is interrupted between epochs or during a later epoch, `status.json`
 should still identify the latest completed epoch and the latest checkpoint path.
 The batch-level metrics may include logged train loss from the interrupted epoch.
