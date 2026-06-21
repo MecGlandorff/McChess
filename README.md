@@ -45,7 +45,7 @@ experiments:
 | Legality | Explicit legal move masks from `python-chess`; the model is never trusted to learn legality |
 | Data | PGN streaming, corrupt/unknown-result accounting, game-level splits, JSONL shards, and manifests |
 | Training input | JSONL-backed datasets plus optional tensor caches for faster local CUDA training |
-| Models | Compact PyTorch policy/value ResNet presets: `resnet_a` and `resnet_b` |
+| Models | PyTorch policy/value ResNet presets: `resnet_a`, `resnet_b`, and BatchNorm `resnet_c` |
 | Training | YAML-configured supervised training with epoch metrics, batch metrics, checkpoints, and loss plots |
 | Evaluation metrics | Legal-masked supervised top-k evaluation and value diagnostics via `python -m mcchess.eval.supervised` |
 | Search | Deterministic fixed-budget PUCT MCTS with masked policy priors and value backup sign flips |
@@ -101,6 +101,9 @@ total loss (`2.8403`) was already below ResNet-A's final epoch-20 loss
 ![ResNet-A loss curve](reports/assets/lichess_2026_05_resnet_a_loss_curve.svg)
 
 ![ResNet-B loss curve](reports/assets/lichess_2026_05_resnet_b_loss_curve.svg)
+
+`resnet_c` is implemented as a larger BatchNorm preset, but it does not yet have
+a completed training run or evaluation result.
 
 An initial local MCTS smoke result is documented in
 [reports/2026-06-17-mcts-puct-explainer.md](reports/2026-06-17-mcts-puct-explainer.md).

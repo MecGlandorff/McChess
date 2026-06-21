@@ -1,0 +1,24 @@
+# Cached 20-epoch supervised ResNet-C run over May 2026 2000+ Lichess games.
+#
+# Matches the ResNet-A and ResNet-B May 2026 cached batch-metrics runs'
+# dataset, seed, batch size, and optimizer settings, but writes to a fresh
+# output directory and uses the `resnet_c` BatchNorm model preset.
+
+train_path: data/processed/lichess_2026_05_2000plus/train.jsonl
+val_path: data/processed/lichess_2026_05_2000plus/val.jsonl
+train_cache_dir: data/tensor_cache/lichess_2026_05_2000plus/train
+val_cache_dir: data/tensor_cache/lichess_2026_05_2000plus/val
+dataset_manifest_path: data/manifests/lichess_2026_05_2000plus_manifest.json
+output_dir: runs/lichess_2026_05_2000plus_resnet_c_epoch20_cached_batchmetrics
+
+seed: 20260501
+device: cuda
+batch_size: 2048
+epochs: 20
+learning_rate: 0.0005
+weight_decay: 0.001
+value_weight: 1.0
+num_workers: 4
+log_every_steps: 100
+
+model_preset: resnet_c

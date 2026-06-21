@@ -7,6 +7,8 @@ Current built-in presets are exported by `mcchess.model`:
 - `resnet_a`: default single-board `PolicyValueResNet` configuration.
 - `resnet_b`: deeper single-board ResNet with `channels=64`, `num_blocks=6`,
   and `value_hidden_dim=128`.
+- `resnet_c`: larger BatchNorm single-board ResNet with `channels=128`,
+  `num_blocks=10`, `value_hidden_dim=256`, and `normalization=batchnorm`.
 
 Training configs may select a preset with:
 

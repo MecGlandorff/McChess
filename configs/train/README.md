@@ -31,3 +31,10 @@ Current development configs:
 - `lichess_2026_05_2000plus_resnet_b_epoch20_cached_batchmetrics.yaml`: cached
   20-epoch ResNet-B run over the same May 2026 Lichess 2000+ filtered dataset,
   seed, and optimizer settings as the ResNet-A batch-metrics run.
+- `lichess_2026_05_2000plus_resnet_c_epoch20_cached_batchmetrics.yaml`: cached
+  20-epoch ResNet-C BatchNorm run over the same May 2026 Lichess 2000+
+  filtered dataset, seed, batch size, and optimizer settings as the matched
+  ResNet-A and ResNet-B batch-metrics runs.
+- `lichess_2026_05_2000plus_resnet_c_epoch3_cached_batchmetrics.yaml`: cached
+  3-epoch ResNet-C BatchNorm pilot over the same May 2026 Lichess 2000+
+  filtered dataset, seed, batch size, and optimizer settings.

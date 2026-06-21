@@ -24,7 +24,7 @@ Current implementation:
 - `src/mcchess/model/network.py`
 - class: `PolicyValueResNet`
 - config: `ResNetConfig`
-- presets: `resnet_a`, `resnet_b`
+- presets: `resnet_a`, `resnet_b`, `resnet_c`
 
 Input:
 
@@ -41,9 +41,9 @@ policy head
 value head
 ```
 
-No normalization layers are used in the current baseline. BatchNorm, GroupNorm,
+`resnet_a` and `resnet_b` do not use normalization layers. BatchNorm, GroupNorm,
 or other normalization variants should be treated as matched ablations rather
-than silently replacing the baseline architecture.
+than silently replacing those baseline architectures.
 
 Outputs:
 
@@ -57,11 +57,14 @@ Packaged presets:
 - `resnet_a`: the default `ResNetConfig()` single-board model.
 - `resnet_b`: a deeper compact single-board baseline with `channels=64`,
   `num_blocks=6`, and `value_hidden_dim=128`.
-- `resnet_c` (planned): adds BatchNorm and related training refinements as a
-  measured ablation on top of the deliberately minimal baselines.
+- `resnet_c`: a larger BatchNorm single-board ResNet with `channels=128`,
+  `num_blocks=10`, `value_hidden_dim=256`, and `normalization=batchnorm`.
 
-`resnet_b` is a model package for controlled follow-up training and ablation. It
-has no reported result until trained and evaluated under the project protocol.
+`resnet_b` has completed local full-data supervised training metrics, but it is
+not a complete architecture-ablation result until evaluated under the matched
+protocols needed for the question being asked. `resnet_c` is implemented as the
+next measured ablation. It should not replace the no-normalization A/B baselines
+when making architecture comparisons.
 
 ## 2. History ResNet
 

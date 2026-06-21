@@ -270,12 +270,13 @@ Baseline:
 
 - `PolicyValueResNet`: compact single-board ResNet policy/value network.
   Current input shape is `[batch, 18, 8, 8]`; outputs are
-  `policy_logits: [batch, 4672]` and `value: [batch]`. No normalization layers
-  are used in the current baseline. This keeps the first supervised ResNet
-  minimal and makes later normalization changes measurable as matched
-  ablations. BatchNorm, GroupNorm, or other normalization variants should be
-  compared explicitly rather than assumed as part of the baseline.
-- Named ResNet presets currently include `resnet_a` and `resnet_b`.
+  `policy_logits: [batch, 4672]` and `value: [batch]`. `resnet_a` and
+  `resnet_b` do not use normalization layers. This keeps the first supervised
+  ResNets minimal and makes normalization changes measurable as matched
+  ablations. `resnet_c` adds BatchNorm explicitly rather than silently replacing
+  the no-normalization baselines.
+- Named ResNet presets currently include `resnet_a`, `resnet_b`, and
+  `resnet_c`.
 
 Ablations:
 

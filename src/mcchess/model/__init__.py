@@ -12,6 +12,7 @@ from mcchess.model.network import PolicyValueResNet, ResNetConfig, ResidualBlock
 from mcchess.model.model_presets import (
     RESNET_A,
     RESNET_B,
+    RESNET_C,
     ModelPreset,
     available_model_presets,
     build_model_from_preset,
@@ -26,6 +27,7 @@ __all__ = [
     "PolicyValueResNet",
     "RESNET_A",
     "RESNET_B",
+    "RESNET_C",
     "ResNetConfig",
     "ResidualBlock",
     "available_model_presets",
