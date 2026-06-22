@@ -112,13 +112,15 @@ MCTS-50 bot scored 20 wins out of 20 games against the same ResNet-B checkpoint
 used policy-only. Illegal moves were zero. This is a local fixed-config smoke
 result, not an Elo estimate or a broad strength claim.
 
-A thin exploratory external Stockfish-UCI run estimated ResNet-B MCTS-200 at
-roughly `2163` against Stockfish `UCI_Elo` handicap levels. That estimate came
-from 20 included handicap games (`12.0/20`, rough interval `1969-2361`) plus one
-full-strength sanity game in an old notebook-style run. It is not a promoted
-result: the sample is small, it predates the package runner, and it is not
-Lichess Elo, FIDE Elo, or general engine strength. The planned replacement is a
-200-game run via `configs/eval/stockfish_mcts200_resnet_b_elo_200games.yaml`.
+A package-run external Stockfish-UCI benchmark is documented in
+[reports/2026-06-19-stockfish-mcts200-resnet-b-200games.md](reports/2026-06-19-stockfish-mcts200-resnet-b-200games.md).
+Under `configs/eval/stockfish_mcts200_resnet_b_elo_200games.yaml`, ResNet-B
+MCTS-200 completed 202 games against Stockfish 18: two full-strength sanity
+games, excluded from the estimate, and 200 games across `UCI_Elo` handicap
+levels 1600 through 2500 at `time=1.0s/move`. On the 200 included handicap
+games, McChess scored `95/53/52` for `0.6075`, with a rough local
+Stockfish-UCI estimate of `2171` and interval `2110-2233`. This is not Lichess
+Elo, FIDE Elo, CCRL Elo, or a general engine-strength claim.
 
 ## Core Contracts
 

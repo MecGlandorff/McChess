@@ -66,6 +66,41 @@ Record:
 
 Move polished result tables to `RESULTS.md` only after the underlying experiment entry has enough metadata to reproduce the result.
 
+## Completed Experiments
+
+### `stockfish_mcts200_resnet_b_elo_200games`
+
+```yaml
+experiment_id: stockfish_mcts200_resnet_b_elo_200games
+status: completed
+question: >
+  What rough local Stockfish-UCI handicap estimate does the ResNet-B checkpoint
+  reach when moves are selected with fixed-budget MCTS-200?
+hypothesis: >
+  MCTS-200 should produce a stronger local benchmark result than policy-only
+  play, but the result should be interpreted only under the exact Stockfish-UCI
+  handicap protocol.
+dataset_manifest: null
+model_config: resnet_b preset from checkpoint metadata
+train_config: configs/train/lichess_2026_05_2000plus_resnet_b_epoch20_cached_batchmetrics.yaml
+eval_config: configs/eval/stockfish_mcts200_resnet_b_elo_200games.yaml
+seed: 0
+git_commit: 9e261a35711c08d5afd6ba5a683ad0af563717a7
+checkpoint_path: runs/lichess_2026_05_2000plus_resnet_b_epoch20_cached_batchmetrics/checkpoint.pt
+metrics_path: runs/external_stockfish/stockfish_mcts200_resnet_b_elo_200games/result.json
+results_path: reports/2026-06-19-stockfish-mcts200-resnet-b-200games.md
+hardware: null
+started_at: 2026-06-18T21:33:59.866225+00:00
+completed_at: 2026-06-19T04:50:21.586859+00:00
+notes: >
+  Completed 202 games: 2 full-strength Stockfish sanity games excluded from the
+  estimate and 200 included Stockfish UCI_Elo handicap games from 1600 through
+  2500 at time=1.0s/move. McChess scored 95/53/52 over the included games
+  for 0.6075. The rough local Stockfish-UCI estimate was 2171 with interval
+  2110 to 2233. This is not Lichess Elo, FIDE Elo, CCRL Elo, or a general
+  engine-strength claim.
+```
+
 ## Core Experiment Groups
 
 ### Group 1 - Supervised Baseline
