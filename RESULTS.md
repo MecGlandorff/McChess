@@ -12,8 +12,14 @@ One reportable supervised baseline run exists:
   600k-position prefix of the Lichess 2013-01 training shard and evaluated on a
   40k-position held-out test slice.
 
-No archival arena, MCTS scaling, search-distillation, self-play, or matched
-architecture-ablation result has been promoted to this file yet.
+One external Stockfish-UCI benchmark has been recorded:
+
+- `stockfish_mcts200_resnet_b_elo_200games`: ResNet-B MCTS-200 against
+  Stockfish 18 `UCI_Elo` handicap levels from 1600 through 2500 under a
+  one-second-per-move Stockfish limit.
+
+No archival internal arena, MCTS scaling, search-distillation, self-play, or
+matched architecture-ablation result has been promoted to this file yet.
 
 A local working-tree MCTS smoke run is described in
 `reports/2026-06-17-mcts-puct-explainer.md`. It should be rerun from committed
@@ -118,6 +124,63 @@ first local MCTS-50 smoke result.
 | Experiment | Agent | Opponent | Games | Wins | Draws | Losses | Score |
 |---|---|---|---:|---:|---:|---:|---:|
 | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+
+## External Stockfish Benchmark Results
+
+These are external evaluation results only. Stockfish moves, evaluations, and
+game outcomes are not used as McChess training data, labels, distillation
+targets, checkpoint selection targets, or self-play targets.
+
+| Experiment | Agent | Opponent | Included games | W | D | L | Score | Estimate |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| `stockfish_mcts200_resnet_b_elo_200games` | ResNet-B MCTS-200 | Stockfish 18 `UCI_Elo=1600..2500`, `time=1.0s/move` | 200 | 95 | 53 | 52 | 0.608 | 2171 |
+
+### `stockfish_mcts200_resnet_b_elo_200games`
+
+- status: completed
+- scope: external Stockfish benchmark only
+- config: `configs/eval/stockfish_mcts200_resnet_b_elo_200games.yaml`
+- command:
+
+```powershell
+poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts200_resnet_b_elo_200games.yaml
+```
+
+- checkpoint:
+  `runs/lichess_2026_05_2000plus_resnet_b_epoch20_cached_batchmetrics/checkpoint.pt`
+- agent: `resnet_b_mcts_200`
+- MCTS budget: 200 simulations per move, `c_puct = 1.5`
+- opponent: Stockfish 18 through UCI
+- Stockfish limit: `time=1.0s/move`
+- included opponents: `UCI_Elo=1600` through `2500`, 20 games per level
+- excluded sanity games: 2 full-strength Stockfish games
+- opening protocol: standard initial position
+- color policy: alternating McChess White first over the global game schedule
+- max ply: 180
+- draw rule: `python_chess_outcome_or_max_ply_draw`
+- seed: 0
+- git_commit: `9e261a35711c08d5afd6ba5a683ad0af563717a7`
+- results_path:
+  `reports/2026-06-19-stockfish-mcts200-resnet-b-200games.md`
+- local artifact path:
+  `runs/external_stockfish/stockfish_mcts200_resnet_b_elo_200games/result.json`
+- date_run: 2026-06-19
+
+| Metric | Value |
+|---|---:|
+| completed games, all scheduled | 202 / 202 |
+| McChess W/D/L, all games | 95 / 53 / 54 |
+| McChess score, all games | 0.601 |
+| included `UCI_Elo` handicap games | 200 |
+| McChess W/D/L, included games | 95 / 53 / 52 |
+| McChess score, included games | 0.6075 |
+| rough local Stockfish-UCI estimate | 2171 |
+| rough 95% interval | 2110 to 2233 |
+| illegal moves | 0 |
+
+Interpretation: the estimate is a local Stockfish `UCI_Elo` handicap benchmark
+under the recorded config. It is not Lichess Elo, FIDE Elo, CCRL Elo, or a
+general engine-strength claim.
 
 ## MCTS Scaling Results
 
