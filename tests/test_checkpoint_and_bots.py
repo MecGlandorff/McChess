@@ -231,6 +231,21 @@ class ScriptedBot:
         return move
 
 
+class HistoryRecordingBot:
+    name = "history-recording"
+
+    def __init__(self, move: str) -> None:
+        self.move = chess.Move.from_uci(move)
+        self.stack_lengths: list[int] = []
+        self.twofold_repetitions: list[bool] = []
+
+    def choose_move(self, board: chess.Board) -> chess.Move:
+        self.stack_lengths.append(len(board.move_stack))
+        self.twofold_repetitions.append(board.is_repetition(2))
+        assert self.move in board.legal_moves
+        return self.move
+
+
 class RecordingClickableChessBoard(ClickableChessBoard):
     def __init__(self, game: NotebookChessGame) -> None:
         self.refresh_moves: list[list[str]] = []
@@ -258,6 +273,19 @@ def test_notebook_game_accepts_san_and_uci() -> None:
     game.play("Nf3")
 
     assert [move.uci() for move in game.board.move_stack] == ["e2e4", "e7e5", "g1f3", "b8c6"]
+
+
+def test_notebook_game_passes_history_to_bot() -> None:
+    board = chess.Board()
+    for uci in ("g1f3", "g8f6", "f3g1", "f6g8"):
+        board.push(chess.Move.from_uci(uci))
+    bot = HistoryRecordingBot("g8f6")
+    game = NotebookChessGame(bot=bot, human_color=chess.WHITE, board=board)
+
+    game.play("Nf3")
+
+    assert bot.stack_lengths == [5]
+    assert bot.twofold_repetitions == [True]
 
 
 def test_notebook_game_illegal_move_does_not_mutate_board() -> None:

@@ -1,1 +1,1 @@
-"""Self-play generation and replay buffer utilities."""
+"""Placeholder package for future self-play components."""

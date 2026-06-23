@@ -114,7 +114,7 @@ class NotebookChessGame:
             return self.board.parse_uci(move_text)
 
     def _bot_move(self) -> str:
-        move = self.bot.choose_move(self.board.copy(stack=False))
+        move = self.bot.choose_move(self.board.copy(stack=True))
         if move not in self.board.legal_moves:
             raise ValueError(f"bot returned illegal move {move.uci()}")
         text = f"Bot played {self.board.san(move)}."

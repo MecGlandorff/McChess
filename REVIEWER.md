@@ -2,8 +2,9 @@
 
 McChess is a compact neural chess research project trained without Stockfish,
 Syzygy, or external engine labels. It is milestone-based: supervised-learning
-components and a local arena runner are implemented and tested, while MCTS,
-self-play, and distillation are future work.
+components, a local arena runner, and fixed-budget neural MCTS are implemented
+and tested. Temporal models, attention models, self-play, and distillation are
+future work.
 
 Start with:
 
@@ -23,10 +24,10 @@ Implemented core:
 - checkpoint loading
 - policy-only play
 - local arena evaluation with random, material, negamax, and policy-only bots
+- fixed-budget neural MCTS with masked priors and side-to-move value backup
 
 Not yet implemented:
 
-- neural MCTS
 - temporal and attention model families
 - search distillation
 - self-play
@@ -39,6 +40,8 @@ Important tests:
 - `tests/test_model_network.py`
 - `tests/test_train_supervised_script.py`
 - `tests/test_checkpoint_and_bots.py`
+- `tests/test_arena.py`
+- `tests/test_mcts.py`
 
 Verify with:
 
@@ -48,6 +51,7 @@ poetry run ruff check .
 poetry run mypy src
 ```
 
-Current results are supervised-learning results only. Do not infer Elo, engine
-strength, or arena performance from them unless a result was produced and
-recorded under the evaluation protocol.
+Current reportable results are limited to the experiments recorded in
+`RESULTS.md`, `EXPERIMENTS.md`, and `reports/`. Do not infer Elo, engine
+strength, or broad arena performance unless the result was produced and recorded
+under the evaluation protocol.
