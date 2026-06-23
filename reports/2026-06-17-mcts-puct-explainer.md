@@ -9,8 +9,10 @@ is meant to make the math readable enough that the implementation is easier to
 review and debug.
 
 The short version: policy-only play asks the network for one move and commits
-to it. MCTS spends a fixed number of extra model calls before moving. PUCT is
-the rule that decides where those calls go.
+to it. MCTS spends a fixed number of simulations before moving. Those
+simulations usually evaluate new leaf positions with the model, but the
+simulation budget is the configured search budget. PUCT is the rule that
+decides where the simulations go.
 
 ## MCTS Is Not A Fixed Depth
 
