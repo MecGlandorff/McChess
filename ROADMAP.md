@@ -158,6 +158,9 @@ Exit criteria:
 - terminal handling is tested
 - visit counts and priors can be inspected or saved
 
+Planned follow-up work is documented in
+[`planned_upgrades/mcts_performance.md`](planned_upgrades/mcts_performance.md).
+
 ## Milestone 8 - History Encoders
 
 Goal: add temporal context.
