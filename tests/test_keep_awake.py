@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+import mcchess.eval.keep_awake as keep_awake_module
 from mcchess.eval.keep_awake import (
     ES_CONTINUOUS,
     ES_DISPLAY_REQUIRED,
@@ -46,4 +47,14 @@ def test_keep_system_awake_is_noop_when_disabled_or_not_windows(
 def test_keep_system_awake_rejects_failed_windows_request() -> None:
     with pytest.raises(OSError, match="keep-awake"):
         with keep_system_awake(enabled=True, platform="win32", setter=lambda _flags: 0):
+            pass
+
+
+def test_keep_system_awake_rejects_native_request_on_other_platform(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(keep_awake_module.sys, "platform", "linux")
+
+    with pytest.raises(OSError, match="only available on Windows"):
+        with keep_system_awake(enabled=True, platform="win32"):
             pass

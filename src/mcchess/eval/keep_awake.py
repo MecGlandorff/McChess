@@ -33,7 +33,10 @@ def keep_system_awake(
     set_execution_state = setter or _set_thread_execution_state
     required_state = ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED
     if set_execution_state(required_state) == 0:
-        raise OSError(ctypes.get_last_error(), "failed to request Windows keep-awake state")
+        raise OSError(
+            _get_windows_last_error(),
+            "failed to request Windows keep-awake state",
+        )
 
     try:
         yield
@@ -46,7 +49,16 @@ def keep_system_awake(
             )
 
 
+def _get_windows_last_error() -> int:
+    if sys.platform != "win32":
+        return 0
+    return ctypes.get_last_error()
+
+
 def _set_thread_execution_state(flags: int) -> int:
+    if sys.platform != "win32":
+        raise OSError("Windows execution-state requests are only available on Windows")
+
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     function = kernel32.SetThreadExecutionState
     function.argtypes = [ctypes.c_uint]
