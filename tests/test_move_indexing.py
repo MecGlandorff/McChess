@@ -4,7 +4,13 @@ import chess
 import numpy as np
 import pytest
 
-from mcchess.board import POLICY_SIZE, index_to_move, legal_policy_mask, move_to_index
+from mcchess.board import (
+    POLICY_SIZE,
+    index_to_move,
+    legal_moves_with_policy_indices,
+    legal_policy_mask,
+    move_to_index,
+)
 
 
 def assert_legal_moves_round_trip(board: chess.Board) -> None:
@@ -38,6 +44,16 @@ def test_initial_position_round_trip_and_mask() -> None:
     assert board.legal_moves.count() == 20
     assert_legal_moves_round_trip(board)
     assert_mask_matches_legal_moves(board)
+
+
+def test_legal_moves_and_policy_indices_are_enumerated_together() -> None:
+    board = chess.Board()
+
+    indexed_moves = legal_moves_with_policy_indices(board)
+
+    assert [move for move, _ in indexed_moves] == list(board.legal_moves)
+    assert len({index for _, index in indexed_moves}) == len(indexed_moves)
+    assert all(index == move_to_index(board, move) for move, index in indexed_moves)
 
 
 def test_generated_positions_round_trip_and_mask() -> None:

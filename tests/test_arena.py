@@ -186,6 +186,8 @@ def test_bot_config_rejects_invalid_mcts_values() -> None:
         BotConfig(kind="mcts", checkpoint_path="checkpoint.pt", simulations=0)
     with pytest.raises(ValueError, match="c_puct"):
         BotConfig(kind="mcts", checkpoint_path="checkpoint.pt", c_puct=0.0)
+    with pytest.raises(ValueError, match="inference_batch_size"):
+        BotConfig(kind="mcts", checkpoint_path="checkpoint.pt", inference_batch_size=0)
 
 
 def test_run_match_records_mcts_budget(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -208,13 +210,14 @@ def test_run_match_records_mcts_budget(tmp_path: Path, monkeypatch: pytest.Monke
                 checkpoint_path="checkpoint.pt",
                 simulations=50,
                 c_puct=1.5,
+                inference_batch_size=8,
             ),
             opponent=BotConfig(kind="material"),
         )
     )
 
     assert result["protocol"]["mcts_budget"] == {
-        "agent": {"simulations": 50, "c_puct": 1.5},
+        "agent": {"simulations": 50, "c_puct": 1.5, "inference_batch_size": 8},
         "opponent": None,
     }
 

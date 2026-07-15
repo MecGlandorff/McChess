@@ -77,6 +77,8 @@ external best-move labels.
 - Leaf values are interpreted from the side-to-move perspective at the leaf.
 - Backup must flip the value sign at every ply.
 - Terminal states must not be evaluated as ordinary nonterminal leaves.
+- Non-default batched MCTS inference must be recorded as part of the evaluation
+  protocol because virtual visit reservations can change search trajectories.
 
 ## Dataset Splits
 

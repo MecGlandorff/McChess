@@ -17,9 +17,11 @@ class FixedPolicyValueModel:
         self.logits = logits if logits is not None else torch.zeros(POLICY_SIZE)
         self.value = value
         self.calls = 0
+        self.inference_mode_calls: list[bool] = []
 
     def __call__(self, board: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         self.calls += 1
+        self.inference_mode_calls.append(torch.is_inference_mode_enabled())
         batch_size = board.shape[0]
         logits = self.logits.to(board.device).repeat(batch_size, 1)
         value = torch.full((batch_size,), self.value, dtype=torch.float32, device=board.device)
@@ -47,7 +49,9 @@ def test_backup_flips_value_sign_each_ply() -> None:
 
 def test_mcts_expands_only_legal_root_moves_and_masks_priors() -> None:
     board = chess.Board()
-    model = FixedPolicyValueModel(preferred_logits(board, "e2e4"))
+    logits = preferred_logits(board, "e2e4")
+    logits[chess.A1 * 73] = 100.0  # An illegal action must not enter the legal softmax.
+    model = FixedPolicyValueModel(logits)
     search = MCTSSearch(model, torch.device("cpu"), MCTSConfig(simulations=1))
 
     result = search.search(board)
@@ -57,6 +61,17 @@ def test_mcts_expands_only_legal_root_moves_and_masks_priors() -> None:
     assert set(stats_by_move) == legal_uci
     assert result.move == chess.Move.from_uci("e2e4")
     assert stats_by_move["e2e4"].prior == max(stat.prior for stat in result.root_stats)
+    assert sum(stat.prior for stat in result.root_stats) == pytest.approx(1.0)
+
+
+def test_mcts_model_calls_use_inference_mode() -> None:
+    board = chess.Board()
+    model = FixedPolicyValueModel(preferred_logits(board, "e2e4"))
+
+    MCTSSearch(model, torch.device("cpu"), MCTSConfig(simulations=2)).search(board)
+
+    assert model.inference_mode_calls
+    assert all(model.inference_mode_calls)
 
 
 def test_mcts_returns_legal_move_deterministically() -> None:
@@ -69,6 +84,18 @@ def test_mcts_returns_legal_move_deterministically() -> None:
 
     assert first.move in board.legal_moves
     assert first.move == second.move
+
+
+def test_batched_mcts_uses_fewer_model_calls_and_preserves_visit_budget() -> None:
+    board = chess.Board()
+    model = FixedPolicyValueModel(preferred_logits(board, "e2e4"))
+    config = MCTSConfig(simulations=8, c_puct=1.5, inference_batch_size=4)
+
+    result = MCTSSearch(model, torch.device("cpu"), config).search(board)
+
+    assert result.move in board.legal_moves
+    assert sum(stat.visit_count for stat in result.root_stats) == config.simulations
+    assert model.calls < config.simulations + 1
 
 
 def test_mcts_bot_returns_legal_move_from_checkpoint() -> None:
@@ -127,3 +154,5 @@ def test_mcts_config_rejects_invalid_values() -> None:
         MCTSConfig(simulations=0)
     with pytest.raises(ValueError, match="c_puct"):
         MCTSConfig(c_puct=0.0)
+    with pytest.raises(ValueError, match="inference_batch_size"):
+        MCTSConfig(inference_batch_size=0)

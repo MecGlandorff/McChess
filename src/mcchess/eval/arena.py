@@ -38,6 +38,7 @@ class BotConfig:
     device: str = "auto"
     simulations: int | None = None
     c_puct: float | None = None
+    inference_batch_size: int | None = None
 
     def __post_init__(self) -> None:
         if self.kind not in {"random", "material", "negamax", "policy_only", "mcts"}:
@@ -50,6 +51,8 @@ class BotConfig:
             raise ValueError("simulations must be positive")
         if self.c_puct is not None and (not math.isfinite(self.c_puct) or self.c_puct <= 0.0):
             raise ValueError("c_puct must be a positive finite value")
+        if self.inference_batch_size is not None and self.inference_batch_size <= 0:
+            raise ValueError("inference_batch_size must be positive")
 
 
 @dataclass(frozen=True)
@@ -124,6 +127,7 @@ def build_bot(config: BotConfig, *, default_seed: int) -> Bot:
             name=name,
             simulations=_mcts_simulations(config),
             c_puct=_mcts_c_puct(config),
+            inference_batch_size=_mcts_inference_batch_size(config),
         )
     raise ValueError(f"unsupported bot kind: {config.kind}")
 
@@ -426,12 +430,17 @@ def _mcts_c_puct(config: BotConfig) -> float:
     return config.c_puct if config.c_puct is not None else 1.5
 
 
+def _mcts_inference_batch_size(config: BotConfig) -> int:
+    return config.inference_batch_size if config.inference_batch_size is not None else 1
+
+
 def _bot_mcts_budget(config: BotConfig) -> dict[str, float | int] | None:
     if config.kind != "mcts":
         return None
     return {
         "simulations": _mcts_simulations(config),
         "c_puct": _mcts_c_puct(config),
+        "inference_batch_size": _mcts_inference_batch_size(config),
     }
 
 

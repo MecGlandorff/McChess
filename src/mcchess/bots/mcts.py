@@ -30,11 +30,16 @@ class MCTSBot:
         name: str = "mcts",
         simulations: int = 50,
         c_puct: float = 1.5,
+        inference_batch_size: int = 1,
     ) -> "MCTSBot":
         loaded = load_policy_value_checkpoint(checkpoint_path, device=device)
         return cls(
             checkpoint=loaded,
-            config=MCTSConfig(simulations=simulations, c_puct=c_puct),
+            config=MCTSConfig(
+                simulations=simulations,
+                c_puct=c_puct,
+                inference_batch_size=inference_batch_size,
+            ),
             name=name,
         )
 
