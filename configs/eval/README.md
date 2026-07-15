@@ -40,9 +40,9 @@ opponent:
 Supported arena bot kinds are `random`, `material`, `negamax`, `policy_only`,
 and `mcts`. `negamax` accepts `depth`; `policy_only` requires
 `checkpoint_path` and may set `device`; `mcts` requires `checkpoint_path` and
-may set `device`, `simulations`, and `c_puct`. Arena wins, draws, losses, and
-score are recorded from the named `agent` perspective while colors alternate
-with the agent playing White first.
+may set `device`, `simulations`, `c_puct`, and `inference_batch_size`. Arena
+wins, draws, losses, and score are recorded from the named `agent` perspective
+while colors alternate with the agent playing White first.
 If `opening_fens` is set, adjacent games reuse the same FEN with colors swapped;
 each game record stores `opening_index` and `starting_fen`.
 
@@ -53,8 +53,8 @@ poetry run python -m mcchess.eval.arena configs/eval/arena_resnet_b_policy_vs_mc
 ```
 
 That config compares the local ResNet-B policy-only checkpoint against the same
-checkpoint with deterministic MCTS-50. The result JSON records the MCTS budget
-at match level.
+checkpoint with MCTS-50. The result JSON records the MCTS budget at match level,
+including the inference batch size.
 
 For a watchable local demo, an arena config may set `print_moves: true` and
 `move_delay_seconds`. This only paces policy-only play; it is not a search or
@@ -73,6 +73,17 @@ through 2500. These are external evaluation benchmarks only. Stockfish moves,
 evaluations, and game outcomes must not be used for training, labels,
 distillation, or checkpoint selection targets.
 
+The MCTS simulation budget and inference batch size are explicit in each
+config. For epoch-22 ResNet-C, use
+`configs/eval/stockfish_mcts200_resnet_c_epoch22_batch8_elo.yaml` for a
+22-game MCTS-200 smoke run,
+`configs/eval/stockfish_mcts1000_resnet_c_epoch22_batch8_elo.yaml` for a
+22-game MCTS-1000 smoke run, and
+`configs/eval/stockfish_mcts1000_resnet_c_epoch22_batch8_elo_200games.yaml`
+for the 202-game report run. Each has a separate run ID and output directory.
+The smoke result is only a pipeline check; 20 included games are insufficient
+for a reportable rating estimate.
+
 Install Stockfish into an ignored local folder such as `.local/stockfish`, set
 `STOCKFISH_PATH`, then run:
 
@@ -84,6 +95,25 @@ For the 200-game benchmark:
 
 ```powershell
 poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts200_resnet_b_elo_200games.yaml
+```
+
+For the epoch-22 ResNet-C batch-8 smoke benchmark:
+
+```powershell
+poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts200_resnet_c_epoch22_batch8_elo.yaml --keep-awake
+```
+
+To smoke-test the report search budget itself:
+
+```powershell
+poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts1000_resnet_c_epoch22_batch8_elo.yaml --keep-awake
+```
+
+After the smoke run completes, start the batch-8 report benchmark without the
+live GUI:
+
+```powershell
+poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts1000_resnet_c_epoch22_batch8_elo_200games.yaml --keep-awake
 ```
 
 To watch moves in the terminal:
@@ -108,6 +138,11 @@ Stockfish `UCI_Elo` handicap setting under the recorded move limit, for example
 `time=1.0s/move`; it is not Lichess Elo, FIDE Elo, or a general
 engine-strength claim. The Stockfish runner shows game-level terminal progress
 by default; use `--no-progress` for plain log output.
+
+On Windows, `--keep-awake` requests system and display availability only for
+the lifetime of the evaluator process. The request is released when the command
+finishes or fails. It does not modify the saved power plan or the evaluation
+protocol.
 
 Stockfish benchmark configs may also set `opening_fens`; adjacent games within
 each Stockfish level reuse the same FEN. If setup fails after the config has
