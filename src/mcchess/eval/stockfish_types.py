@@ -69,7 +69,7 @@ class StockfishLevelConfig:
 
 @dataclass(frozen=True)
 class StockfishEvalConfig:
-    """Configuration for a fixed external Stockfish benchmark."""
+    """Configuration for a fixed-budget external Stockfish benchmark."""
 
     run_id: str
     output_dir: str
@@ -90,8 +90,8 @@ class StockfishEvalConfig:
         object.__setattr__(self, "opening_fens", normalize_opening_fens(self.opening_fens))
         if self.agent.kind != "mcts":
             raise ValueError("Stockfish benchmark agent must be an MCTS bot")
-        if self.agent.simulations != 200:
-            raise ValueError("Stockfish benchmark is intentionally fixed to MCTS-200")
+        if self.agent.simulations is None:
+            raise ValueError("Stockfish benchmark agent must set simulations explicitly")
         if not self.stockfish_levels:
             raise ValueError("stockfish_levels must contain at least one level")
         if self.max_ply <= 0:
