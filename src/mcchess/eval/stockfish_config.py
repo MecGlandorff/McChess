@@ -74,7 +74,11 @@ def protocol_summary(config: StockfishEvalConfig) -> dict[str, Any]:
         "color_policy": COLOR_POLICY,
         "opening_protocol": opening_protocol(config.opening_fens),
         "opening_count": len(config.opening_fens) if config.opening_fens else 1,
-        "mcts_budget": {"simulations": 200, "c_puct": config.agent.c_puct or 1.5},
+        "mcts_budget": {
+            "simulations": config.agent.simulations or 200,
+            "c_puct": config.agent.c_puct or 1.5,
+            "inference_batch_size": config.agent.inference_batch_size or 1,
+        },
         "stockfish_levels": [level_config_dict(level) for level in config.stockfish_levels],
     }
 

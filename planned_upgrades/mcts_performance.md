@@ -1,6 +1,11 @@
 # MCTS Performance Plan
 
-Status: planned
+Status: in progress
+
+Step 1 was implemented on 2026-07-15. A local fixed-position development check
+was run before and after the change, but the reproducible benchmark config and
+detailed counters described below are still pending. Do not treat the local
+timings as a reportable performance result.
 
 ## Why This Work Is Needed
 
@@ -35,7 +40,7 @@ is the behavioral reference for search changes.
 
 ## Planned Steps
 
-### 1. Remove Avoidable Hot-Path Work
+### 1. Remove Avoidable Hot-Path Work (implemented)
 
 - use `torch.inference_mode()` for model calls
 - enumerate legal moves and their policy indices once per expansion

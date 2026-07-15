@@ -78,7 +78,9 @@ Common budget types:
 - fixed wall-clock time per move
 - fixed total game clock
 
-Report node budgets and wall-clock speed separately. A model that wins more games but runs much slower should not be presented as strictly better without speed context.
+Report node budgets, MCTS inference batch size, and wall-clock speed separately.
+A model that wins more games but runs much slower should not be presented as
+strictly better without speed context.
 
 ## MCTS Budgets
 
@@ -91,6 +93,11 @@ Evaluate at:
 - MCTS-400
 
 When possible, also report wall-clock speed.
+
+The default MCTS inference batch size is 1. Larger values reserve multiple
+selected leaf paths and evaluate their neural inputs as one model batch, which
+can improve CUDA utilization. Because those reservations affect later selection
+within the same batch, record `inference_batch_size` for reproducibility.
 
 ## Metrics
 
@@ -138,8 +145,9 @@ The result JSON records:
   buckets
 
 For arena runs, `kind: mcts` uses a fixed simulation budget from the YAML
-config. The result JSON records that budget in `protocol.mcts_budget`;
-policy-only bots leave the corresponding side as `null`.
+config. The result JSON records that budget, including `inference_batch_size`,
+in `protocol.mcts_budget`; policy-only bots leave the corresponding side as
+`null`.
 
 Use validation data for tuning choices such as checkpoint selection,
 normalization variants, loss weights, or reranking. Use test data for the final
@@ -158,7 +166,7 @@ A result is reportable only if it includes:
 - opening-position protocol
 - model checkpoint or bot version
 - opponent checkpoint or bot version
-- MCTS budget or policy-only declaration
+- MCTS budget and inference batch size, or policy-only declaration
 - illegal move count
 - evaluation config path or saved config copy
 
@@ -214,6 +222,9 @@ Use `python -m mcchess.eval.stockfish` with a YAML config for this benchmark.
 The short MCTS-200 config is `configs/eval/stockfish_mcts200_resnet_b_elo.yaml`.
 The 200-game report-scale config is
 `configs/eval/stockfish_mcts200_resnet_b_elo_200games.yaml`.
+Stockfish benchmark configs must set the McChess MCTS simulation budget
+explicitly. Higher-budget runs use separate run IDs and output directories so
+their artifacts do not overwrite MCTS-200 results.
 
 The default protocol:
 
@@ -230,6 +241,11 @@ the exact config and Stockfish search limit, for example `time=1.0s/move`. Do
 not describe it as Lichess Elo, FIDE Elo, or general engine strength.
 If setup fails after the config has loaded, the runner writes a schema-v2
 failed result with the setup error, then re-raises the exception.
+
+Long Windows runs may add `--keep-awake`. This makes a process-scoped system
+and display availability request and releases it when the evaluator exits. It
+does not change the search budget, opponent limit, or saved evaluation
+protocol.
 
 `python -m mcchess.eval.stockfish_ladder` may be used as a
 Stockfish-vs-Stockfish self-consistency check for adjacent `UCI_Elo` levels

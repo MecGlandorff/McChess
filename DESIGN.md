@@ -182,6 +182,7 @@ The move-indexing layer must provide:
 move_to_index(board, move) -> int
 index_to_move(board, index) -> chess.Move | None
 legal_policy_mask(board) -> np.ndarray
+legal_moves_with_policy_indices(board) -> list[tuple[chess.Move, int]]
 ```
 
 `move_to_index` raises `ValueError` for illegal or unrepresentable moves.
@@ -189,6 +190,10 @@ legal_policy_mask(board) -> np.ndarray
 `index_to_move` returns `None` when the index is out of range or does not decode to a legal move in the current position.
 
 `legal_policy_mask` returns a `float32` array of shape `[4672]` with `1.0` at legal move indices.
+
+`legal_moves_with_policy_indices` enumerates `python-chess` legal moves and
+computes their policy indices in the same pass. It is used by legal masking and
+MCTS expansion to avoid repeating legal move generation for every index.
 
 Legal masking must use python-chess.
 
@@ -262,10 +267,19 @@ the current board, runs the policy head, masks illegal moves with
 `legal_policy_mask(board)`, and chooses the highest-logit legal move. It does
 not use MCTS or the value head for move selection.
 
-The MCTS bot loads the same checkpoint format and runs deterministic fixed-budget
-PUCT search. It expands legal moves only, derives priors from legally masked
-policy logits, evaluates nonterminal leaves with the value head, and flips value
-perspective on every backup ply.
+The MCTS bot loads the same checkpoint format and runs fixed-budget PUCT search.
+It expands legal moves only, derives priors from legally masked policy logits,
+evaluates nonterminal leaves with the value head, and flips value perspective
+on every backup ply. By default it evaluates one leaf at a time. Configs may set
+`inference_batch_size > 1` to reserve several selected leaf paths and evaluate
+their neural inputs in one batch, which improves CUDA utilization but can change
+search trajectories through virtual visit reservations.
+
+Within each expansion, MCTS enumerates legal moves and policy indices once,
+applies softmax only to those legal logits, and transfers the resulting legal
+priors and value to the host as one batch. Model calls use
+`torch.inference_mode()`, and nodes store their selected-visit total for PUCT
+instead of recomputing it from all outgoing edges.
 
 The notebook play helper provides a click-to-move ipywidgets board whose
 buttons are built once and mutated in place after each move. It is an
@@ -326,6 +340,7 @@ Requirements:
 - flip value sign at each ply during backup
 - support fixed simulation budget
 - handle terminal positions without ordinary network evaluation
+- record non-default batched inference settings when used in evaluation
 
 ## Dataset Pipeline
 

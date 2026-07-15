@@ -31,6 +31,24 @@ REPORT_CONFIG_PATH = (
     / "eval"
     / "stockfish_mcts200_resnet_b_elo_200games.yaml"
 )
+BATCH8_SMOKE_CONFIG_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "eval"
+    / "stockfish_mcts200_resnet_c_epoch22_batch8_elo.yaml"
+)
+BATCH8_MCTS1000_SMOKE_CONFIG_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "eval"
+    / "stockfish_mcts1000_resnet_c_epoch22_batch8_elo.yaml"
+)
+BATCH8_REPORT_CONFIG_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "eval"
+    / "stockfish_mcts1000_resnet_c_epoch22_batch8_elo_200games.yaml"
+)
 LADDER_CONFIG_PATH = (
     Path(__file__).resolve().parents[1]
     / "configs"
@@ -212,14 +230,25 @@ def test_schedule_pairs_configured_opening_fens_within_each_level() -> None:
     ]
 
 
-def test_stockfish_config_rejects_non_mcts_200() -> None:
-    with pytest.raises(ValueError, match="MCTS-200"):
+def test_stockfish_config_requires_explicit_mcts_budget() -> None:
+    with pytest.raises(ValueError, match="simulations explicitly"):
         StockfishEvalConfig(
             run_id="bad",
             output_dir="runs/external_stockfish/bad",
-            agent=mcts_agent_config(simulations=50),
+            agent=mcts_agent_config(simulations=None),
             stockfish_levels=[sanity_level()],
         )
+
+
+def test_stockfish_config_accepts_non_200_mcts_budget() -> None:
+    config = StockfishEvalConfig(
+        run_id="mcts_1000",
+        output_dir="runs/external_stockfish/mcts_1000",
+        agent=mcts_agent_config(simulations=1000),
+        stockfish_levels=[sanity_level()],
+    )
+
+    assert config.agent.simulations == 1000
 
 
 def test_elo_level_requires_uci_elo_when_included() -> None:
@@ -349,6 +378,39 @@ def test_run_stockfish_eval_module_loads_config_and_resolves_path(tmp_path: Path
     assert stockfish_module.resolve_stockfish_path(config) == str(binary_path)
 
 
+def test_run_stockfish_eval_scopes_keep_awake_around_run(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events: list[object] = []
+    expected_path = tmp_path / "result.json"
+
+    class FakeKeepAwake:
+        def __enter__(self) -> None:
+            events.append("enter")
+
+        def __exit__(self, *exc_info: object) -> None:
+            events.append(("exit", exc_info[0]))
+
+    def fake_keep_system_awake(*, enabled: bool) -> FakeKeepAwake:
+        events.append(("enabled", enabled))
+        return FakeKeepAwake()
+
+    def fake_run_stockfish_eval(*args: object, **kwargs: object) -> Path:
+        events.append(("run", args, kwargs))
+        return expected_path
+
+    monkeypatch.setattr(stockfish_module, "keep_system_awake", fake_keep_system_awake)
+    monkeypatch.setattr(stockfish_module, "_run_stockfish_eval", fake_run_stockfish_eval)
+
+    result = stockfish_module.run_stockfish_eval("config.yaml", keep_awake=True)
+
+    assert result == expected_path
+    assert events[0:2] == [("enabled", True), "enter"]
+    assert events[2][0] == "run"
+    assert events[3] == ("exit", None)
+
+
 def test_report_scale_stockfish_config_has_200_elo_games() -> None:
     config = stockfish_module.load_config(REPORT_CONFIG_PATH)
 
@@ -357,6 +419,32 @@ def test_report_scale_stockfish_config_has_200_elo_games() -> None:
     included_elos = [level.stockfish_elo for level in config.stockfish_levels if level.include_in_elo]
     assert included_games == 200
     assert included_elos == [1600, 1700, 1800, 1900, 2000, 2100, 2200, 2300, 2400, 2500]
+
+
+def test_resnet_c_batch8_configs_keep_smoke_and_report_runs_separate() -> None:
+    smoke = stockfish_module.load_config(BATCH8_SMOKE_CONFIG_PATH)
+    mcts1000_smoke = stockfish_module.load_config(BATCH8_MCTS1000_SMOKE_CONFIG_PATH)
+    report = stockfish_module.load_config(BATCH8_REPORT_CONFIG_PATH)
+
+    assert smoke.num_games == 22
+    assert smoke.agent.simulations == 200
+    assert smoke.agent.inference_batch_size == 8
+    assert "batch8" in smoke.run_id
+    assert "batch8" in smoke.output_dir
+
+    assert mcts1000_smoke.num_games == 22
+    assert mcts1000_smoke.agent.simulations == 1000
+    assert mcts1000_smoke.agent.inference_batch_size == 8
+    assert "batch8" in mcts1000_smoke.run_id
+    assert "batch8" in mcts1000_smoke.output_dir
+
+    assert report.num_games == 202
+    assert report.agent.simulations == 1000
+    assert report.agent.inference_batch_size == 8
+    assert "batch8" in report.run_id
+    assert "batch8" in report.output_dir
+    assert report.output_dir != smoke.output_dir
+    assert report.output_dir != mcts1000_smoke.output_dir
 
 
 def test_stockfish_report_labels_uci_elo_and_time_limit() -> None:

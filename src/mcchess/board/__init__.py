@@ -16,6 +16,7 @@ from mcchess.board.move_index import (
     UNDERPROMOTION_DIRECTIONS,
     UNDERPROMOTION_PIECES,
     index_to_move,
+    legal_moves_with_policy_indices,
     move_to_index,
 )
 
@@ -31,6 +32,7 @@ __all__ = [
     "UNDERPROMOTION_PIECES",
     "encode_board",
     "index_to_move",
+    "legal_moves_with_policy_indices",
     "legal_policy_mask",
     "move_to_index",
     "square_to_tensor_coords",

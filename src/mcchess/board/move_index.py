@@ -67,6 +67,16 @@ def move_to_index(board: chess.Board, move: chess.Move) -> int:
     if move not in board.legal_moves:
         raise ValueError(f"Move {move.uci()} is not legal in the given position")
 
+    return _legal_move_to_index(board, move)
+
+
+def legal_moves_with_policy_indices(board: chess.Board) -> list[tuple[chess.Move, int]]:
+    """Enumerate legal moves and their policy indices in one legality pass."""
+
+    return [(move, _legal_move_to_index(board, move)) for move in board.legal_moves]
+
+
+def _legal_move_to_index(board: chess.Board, move: chess.Move) -> int:
     plane = _move_to_plane(board, move)
     return move.from_square * MOVE_PLANES + plane
 

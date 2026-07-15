@@ -1,0 +1,126 @@
+run_id: stockfish_mcts1000_resnet_c_epoch22_batch8_elo
+output_dir: runs/external_stockfish/stockfish_mcts1000_resnet_c_epoch22_batch8_elo
+stockfish_path: null
+seed: 0
+max_ply: 180
+move_delay_seconds: 0.0
+print_moves: false
+
+agent:
+  kind: mcts
+  name: resnet_c_epoch22_mcts_1000_batch8
+  checkpoint_path: runs/lichess_2026_05_2000plus_resnet_c_epoch30_from_epoch12_cached_batchmetrics/checkpoint_epoch_022.pt
+  device: auto
+  simulations: 1000
+  c_puct: 1.5
+  inference_batch_size: 8
+
+stockfish_levels:
+  - name: full_stockfish_t1s_sanity
+    games: 2
+    include_in_elo: false
+    options:
+      "Skill Level": 20
+      UCI_LimitStrength: false
+    limit:
+      time: 1.0
+
+  - name: uci_elo_1600_t1s
+    games: 2
+    include_in_elo: true
+    options:
+      "Skill Level": 20
+      UCI_LimitStrength: true
+      UCI_Elo: 1600
+    limit:
+      time: 1.0
+
+  - name: uci_elo_1700_t1s
+    games: 2
+    include_in_elo: true
+    options:
+      "Skill Level": 20
+      UCI_LimitStrength: true
+      UCI_Elo: 1700
+    limit:
+      time: 1.0
+
+  - name: uci_elo_1800_t1s
+    games: 2
+    include_in_elo: true
+    options:
+      "Skill Level": 20
+      UCI_LimitStrength: true
+      UCI_Elo: 1800
+    limit:
+      time: 1.0
+
+  - name: uci_elo_1900_t1s
+    games: 2
+    include_in_elo: true
+    options:
+      "Skill Level": 20
+      UCI_LimitStrength: true
+      UCI_Elo: 1900
+    limit:
+      time: 1.0
+
+  - name: uci_elo_2000_t1s
+    games: 2
+    include_in_elo: true
+    options:
+      "Skill Level": 20
+      UCI_LimitStrength: true
+      UCI_Elo: 2000
+    limit:
+      time: 1.0
+
+  - name: uci_elo_2100_t1s
+    games: 2
+    include_in_elo: true
+    options:
+      "Skill Level": 20
+      UCI_LimitStrength: true
+      UCI_Elo: 2100
+    limit:
+      time: 1.0
+
+  - name: uci_elo_2200_t1s
+    games: 2
+    include_in_elo: true
+    options:
+      "Skill Level": 20
+      UCI_LimitStrength: true
+      UCI_Elo: 2200
+    limit:
+      time: 1.0
+
+  - name: uci_elo_2300_t1s
+    games: 2
+    include_in_elo: true
+    options:
+      "Skill Level": 20
+      UCI_LimitStrength: true
+      UCI_Elo: 2300
+    limit:
+      time: 1.0
+
+  - name: uci_elo_2400_t1s
+    games: 2
+    include_in_elo: true
+    options:
+      "Skill Level": 20
+      UCI_LimitStrength: true
+      UCI_Elo: 2400
+    limit:
+      time: 1.0
+
+  - name: uci_elo_2500_t1s
+    games: 2
+    include_in_elo: true
+    options:
+      "Skill Level": 20
+      UCI_LimitStrength: true
+      UCI_Elo: 2500
+    limit:
+      time: 1.0

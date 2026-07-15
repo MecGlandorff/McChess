@@ -20,6 +20,7 @@ from tqdm.auto import tqdm  # type: ignore[import-untyped]
 
 from mcchess.eval.arena import build_bot
 from mcchess.eval.common import git_commit as current_git_commit
+from mcchess.eval.keep_awake import keep_system_awake
 from mcchess.eval.openings import opening_protocol
 from mcchess.eval.stockfish_artifacts import (
     GAME_CSV_FIELDS,
@@ -135,8 +136,33 @@ def run_stockfish_eval(
     move_delay_seconds: float | None = None,
     show: bool = False,
     show_progress: bool = True,
+    keep_awake: bool = False,
 ) -> Path:
     """Run a Stockfish benchmark config and return the result JSON path."""
+
+    with keep_system_awake(enabled=keep_awake):
+        return _run_stockfish_eval(
+            config_path,
+            stockfish_path=stockfish_path,
+            output_dir=output_dir,
+            print_moves=print_moves,
+            move_delay_seconds=move_delay_seconds,
+            show=show,
+            show_progress=show_progress,
+        )
+
+
+def _run_stockfish_eval(
+    config_path: str | Path,
+    *,
+    stockfish_path: str | None = None,
+    output_dir: str | Path | None = None,
+    print_moves: bool | None = None,
+    move_delay_seconds: float | None = None,
+    show: bool = False,
+    show_progress: bool = True,
+) -> Path:
+    """Run the benchmark after process-lifetime wrappers are active."""
 
     config_path = Path(config_path)
     config = load_config(str(config_path))
@@ -234,7 +260,7 @@ def run_stockfish_eval(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run a McChess MCTS-200 external benchmark against Stockfish."
+        description="Run a fixed-budget McChess MCTS external benchmark against Stockfish."
     )
     parser.add_argument("config", type=Path, help="YAML Stockfish benchmark config.")
     parser.add_argument("--stockfish-path", help="Path to the Stockfish executable.")
@@ -242,6 +268,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--print-moves", action="store_true", help="Print live moves.")
     parser.add_argument("--show", action="store_true", help="Open live board and results windows.")
     parser.add_argument("--no-progress", action="store_true", help="Disable terminal progress.")
+    parser.add_argument(
+        "--keep-awake",
+        action="store_true",
+        help="Prevent automatic Windows system and display sleep during the run.",
+    )
     parser.add_argument(
         "--move-delay-seconds",
         type=float,
@@ -260,6 +291,7 @@ def main() -> int:
         move_delay_seconds=args.move_delay_seconds,
         show=args.show,
         show_progress=not args.no_progress,
+        keep_awake=args.keep_awake,
     )
     return 0
 
