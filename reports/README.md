@@ -9,3 +9,5 @@ the metadata requirements in `RESULTS.md`, `EXPERIMENTS.md`, and
 
 - `2026-06-19-stockfish-mcts200-resnet-b-200games.md`: ResNet-B MCTS-200
   external Stockfish-UCI handicap benchmark.
+- `2026-07-16-stockfish-mcts1000-resnet-c-epoch22-200games.md`: ResNet-C
+  epoch-22 MCTS-1000 external Stockfish-UCI handicap benchmark.
