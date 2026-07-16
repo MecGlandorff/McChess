@@ -3,6 +3,32 @@
 [![CI](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+> **Current local Stockfish-UCI handicap estimate: 2489 Elo (rough 95% interval: 2415-2566).**
+>
+> **This is not an official FIDE rating.** It is a local benchmark estimate for
+> the ResNet-C epoch-22 checkpoint using MCTS-1000 with inference batch size 8.
+> McChess scored 84.75% over 200 included games against Stockfish 18 `UCI_Elo`
+> levels 1600-2500 at 1.0 second per Stockfish move. It is not Lichess Elo or a
+> general engine-strength rating. See the
+> [benchmark report](reports/2026-07-16-stockfish-mcts1000-resnet-c-epoch22-200games.md),
+> [config](configs/eval/stockfish_mcts1000_resnet_c_epoch22_batch8_elo_200games.yaml),
+> and [evaluation protocol](docs/EVALUATION_PROTOCOL.md).
+
+| Stockfish setting | McChess W/D/L | Score |
+|---|---:|---:|
+| Full strength, sanity only | 0/0/2 | 0.0% |
+| `UCI_Elo` 1600 | 20/0/0 | 100.0% |
+| `UCI_Elo` 1700 | 19/0/1 | 95.0% |
+| `UCI_Elo` 1800 | 17/1/2 | 87.5% |
+| `UCI_Elo` 1900 | 19/1/0 | 97.5% |
+| `UCI_Elo` 2000 | 17/3/0 | 92.5% |
+| `UCI_Elo` 2100 | 14/4/2 | 80.0% |
+| `UCI_Elo` 2200 | 16/3/1 | 87.5% |
+| `UCI_Elo` 2300 | 15/3/2 | 82.5% |
+| `UCI_Elo` 2400 | 10/8/2 | 70.0% |
+| `UCI_Elo` 2500 | 6/10/4 | 55.0% |
+| **Rated total** | **153/33/14** | **84.75%** |
+
 ## Quick Start: Watch Or Play Search
 
 Open [notebooks/bot_vs_bot.ipynb](notebooks/bot_vs_bot.ipynb) with the
@@ -102,8 +128,8 @@ total loss (`2.8403`) was already below ResNet-A's final epoch-20 loss
 
 ![ResNet-B loss curve](reports/assets/lichess_2026_05_resnet_b_loss_curve.svg)
 
-`resnet_c` is implemented as a larger BatchNorm preset, but it does not yet have
-a completed training run or evaluation result.
+`resnet_c` is implemented as a larger BatchNorm preset. Its epoch-22 checkpoint
+has a completed external MCTS benchmark, documented below.
 
 An initial local MCTS smoke result is documented in
 [reports/2026-06-17-mcts-puct-explainer.md](reports/2026-06-17-mcts-puct-explainer.md).
@@ -112,15 +138,16 @@ MCTS-50 bot scored 20 wins out of 20 games against the same ResNet-B checkpoint
 used policy-only. Illegal moves were zero. This is a local fixed-config smoke
 result, not an Elo estimate or a broad strength claim.
 
-A package-run external Stockfish-UCI benchmark is documented in
-[reports/2026-06-19-stockfish-mcts200-resnet-b-200games.md](reports/2026-06-19-stockfish-mcts200-resnet-b-200games.md).
-Under `configs/eval/stockfish_mcts200_resnet_b_elo_200games.yaml`, ResNet-B
-MCTS-200 completed 202 games against Stockfish 18: two full-strength sanity
-games, excluded from the estimate, and 200 games across `UCI_Elo` handicap
-levels 1600 through 2500 at `time=1.0s/move`. On the 200 included handicap
-games, McChess scored `95/53/52` for `0.6075`, with a rough local
-Stockfish-UCI estimate of `2171` and interval `2110-2233`. This is not Lichess
-Elo, FIDE Elo, CCRL Elo, or a general engine-strength claim.
+The current package-run external Stockfish-UCI benchmark is documented in the
+[ResNet-C epoch-22 MCTS-1000 report](reports/2026-07-16-stockfish-mcts1000-resnet-c-epoch22-200games.md).
+It completed 202 games against Stockfish 18: two full-strength sanity games,
+excluded from the estimate, and 200 games across `UCI_Elo` handicap levels
+1600 through 2500 at `time=1.0s/move`. On the included games, McChess scored
+`153/33/14` for `0.8475`, with a rough local Stockfish-UCI estimate of `2489`
+and interval `2415-2566`. This is not Lichess Elo, FIDE Elo, CCRL Elo, or a
+general engine-strength claim. The earlier
+[ResNet-B MCTS-200 report](reports/2026-06-19-stockfish-mcts200-resnet-b-200games.md)
+remains available for historical comparison.
 
 ## Core Contracts
 
