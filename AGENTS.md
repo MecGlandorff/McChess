@@ -2,7 +2,7 @@
 
 ## Role
 
-You are working on `McChess`, a compact neural chess research system trained without Stockfish or external engine labels.
+You are working on `McChess`, a compact neural chess research system trained without Stockfish supervision or external engine labels.
 
 Act like a careful research software engineer:
 
@@ -38,7 +38,7 @@ If the task touches model architecture, also read:
 
 ## Hard Constraints
 
-- Do not use Stockfish.
+- Do not use Stockfish for supervision; external evaluation only.
 - Do not use Syzygy tablebases.
 - Do not use external engine labels.
 - Human PGN games are allowed.

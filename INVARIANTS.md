@@ -9,7 +9,11 @@ If an implementation changes one of these contracts, update this file, `DESIGN.m
 - Legal move generation must come from `python-chess`.
 - The neural network must not be trusted to learn legality.
 - Illegal moves must be masked before move selection and before MCTS expansion.
-- Stockfish, Syzygy, Leela, tablebase labels, and external engine move recommendations are not allowed.
+- Stockfish may be used only as an external evaluation opponent. Its moves,
+  evaluations, and game outcomes must not be used for training supervision,
+  distillation, checkpoint selection, or hyperparameter tuning.
+- Syzygy tablebases, Leela labels, tablebase labels, and external engine move
+  recommendations are not allowed.
 
 ## Board Encoding
 
