@@ -50,10 +50,11 @@ question:
 > How far can a small neural chess agent go using human games, architectural
 > inductive bias, search, and self-play without engine supervision?
 
-The project deliberately avoids Stockfish, Syzygy, Leela, tablebase labels,
-external best-move labels, and imported engine weights. `python-chess` owns the
-rules. Neural networks rank and evaluate positions only after legal move
-masking.
+Training supervision excludes Stockfish or Leela moves and evaluations,
+tablebase labels, external best-move labels, and imported engine weights.
+Syzygy tablebases are not used. Stockfish is permitted only as an external
+evaluation opponent. `python-chess` owns the rules. Neural networks rank and
+evaluate positions only after legal move masking.
 
 For a quick inspection path through the repo, see [REVIEWER.md](REVIEWER.md).
 
