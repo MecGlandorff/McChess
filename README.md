@@ -274,7 +274,7 @@ pull request.
 Useful guides:
 
 - `docs/guides/INSTALL_DATA.md`
-- `docs/guides/GPU_POWER_LIMIT.md`
+- `docs/guides/HARDWARE_PROTECT.md`
 - `docs/guides/HOW_TO_PLAY.md`
 - `docs/guides/STOCKFISH_ELO_EVAL.md`
 
@@ -302,15 +302,17 @@ To play against the MCTS bot, open `notebooks/play_mcts_bot.ipynb`. The
 notebooks are manual inspection tools, not arena evaluations or strength
 results.
 
-GPU power limiting for NVIDIA cards can be toggled around CUDA training runs:
+CPU and NVIDIA GPU limits can be applied and restored as one local workflow:
 
 ```powershell
-poetry run python gpu_protect --status
-poetry run python gpu_protect --on
-poetry run python gpu_protect --off
+poetry run python hardware_protect --status
+poetry run python hardware_protect --on --cpu-max-frequency-mhz 3200 --gpu-limit-mode clock --gpu-clock-mhz 1500
+poetry run python hardware_protect --off
 ```
 
-The limiter only matters when training resolves to `device=cuda`.
+The unified restore state remembers the original CPU power-plan values and the
+selected GPU limit mode. See `docs/guides/HARDWARE_PROTECT.md` for component
+selection, dry-run behavior, monitoring, and limitations.
 
 ## Research Boundaries
 
