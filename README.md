@@ -3,7 +3,7 @@
 [![CI](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **Current local Stockfish-UCI handicap estimate: 2489 Elo (rough 95% interval: 2415-2566).**
+> **Current local rating estimate: 2489 Elo (rough 95% interval: 2415-2566).**
 >
 > **This is not an official FIDE rating.** It is a local benchmark estimate for
 > the ResNet-C epoch-22 checkpoint using MCTS-1000 with inference batch size 8.
