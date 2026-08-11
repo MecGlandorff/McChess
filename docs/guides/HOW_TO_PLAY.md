@@ -1,8 +1,9 @@
 # Playing Local Checkpoints
 
-This guide starts notebook widget boards for playing against local McChess
-checkpoints. They are for manual inspection and debugging, not arena evaluation
-or playing-strength claims.
+The primary interface is a terminal game against the bundled epoch-30 ResNet-C
+model. Optional notebook widget boards use the same checkpoint and bot APIs.
+Manual games are for inspection and debugging, not arena evaluation or
+playing-strength claims.
 
 The policy-only notebook uses explicit legal move masking through
 `python-chess`. It does not use MCTS/search, and it does not use the value head
@@ -11,24 +12,53 @@ fixed simulation budget.
 
 ## Prerequisites
 
-Install the project with notebook dependencies:
+Install the project for terminal play:
+
+```powershell
+poetry install
+```
+
+Add notebook dependencies only when using the widget interface:
 
 ```powershell
 poetry install --with dev,notebook
 ```
 
-The play notebook scans canonical checkpoint files under `runs/`:
+The supported play interfaces load this immutable inference artifact by
+default:
 
 ```text
-checkpoint_latest.pt
-checkpoint.pt
+models_archive/resnet_c_epoch_030.pt
 ```
 
-It selects the checkpoint with the lowest recorded `val_total_loss`. This is a
-validation-loss convenience selector, not a playing-strength claim. If no
-candidate records that metric, it falls back to the newest completed or modified
-checkpoint. If you want to play a specific run, set `checkpoint_path` directly
-in `notebooks/play_policy_bot.ipynb`.
+Its checksum and provenance are recorded in `models_archive/`. An explicit
+checkpoint override remains available for local research checkpoints.
+
+## Play In The Terminal
+
+From the repository root:
+
+```powershell
+poetry run mcchess-play
+```
+
+The command accepts SAN (`Nf3`, `O-O`) and UCI (`g1f3`, `e1g1`) moves. It
+defaults to fixed-budget MCTS with 800 simulations per bot move, `c_puct=1.5`,
+and inference batch size 1. This is a simulation budget, not a fixed depth or
+clock limit.
+
+Useful variants:
+
+```powershell
+poetry run mcchess-play --color black
+poetry run mcchess-play --mode policy
+poetry run mcchess-play --simulations 1200 --inference-batch-size 8
+poetry run mcchess-play --checkpoint runs/example/checkpoint.pt
+```
+
+Policy-only mode is faster on CPU. It greedily selects the highest-logit legal
+move and does not use MCTS or the value head. Type `quit`, `exit`, or `resign`
+to stop a game.
 
 ## Register The Kernel
 
@@ -100,17 +130,17 @@ policy-only model is small enough for CPU play.
 
 ## Play The MCTS Bot
 
-`notebooks/play_mcts_bot.ipynb` loads the local ResNet-B checkpoint and wraps it
-in the fixed-budget MCTS bot.
+`notebooks/play_mcts_bot.ipynb` loads the bundled epoch-30 ResNet-C checkpoint
+and wraps it in the fixed-budget MCTS bot.
 
 The default MCTS setting is:
 
 ```python
-MCTS_SIMULATIONS = 300
+MCTS_SIMULATIONS = 800
 ```
 
 This is the number of tree-search simulations per bot move. It is not a fixed
-search depth. The notebook checks that the value stays between 200 and 400.
+search depth. The notebook requires a positive budget.
 
 MCTS play is slower than policy-only play. If CUDA is available, the notebook's
 default `INFERENCE_DEVICE = "auto"` may use it for model evaluation.
@@ -207,7 +237,7 @@ the command and URL to another port, such as `--port=8889`.
 
 ## Limitations
 
-- This is a notebook play helper, not a real game UI.
+- The terminal and notebook interfaces are local play helpers, not full game UIs.
 - Moves are clicked, not dragged.
 - `play_policy_bot.ipynb` is policy-only and greedy over legally masked logits.
 - The MCTS notebook uses fixed simulations per move, not clock time.

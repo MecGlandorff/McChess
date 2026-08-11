@@ -13,6 +13,9 @@ dependencies = [
     "tqdm",
 ]
 
+[project.scripts]
+mcchess-play = "mcchess.play:main"
+
 [tool.poetry]
 packages = [{ include = "mcchess", from = "src" }]
 

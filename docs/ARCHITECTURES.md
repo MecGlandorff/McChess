@@ -60,11 +60,17 @@ Packaged presets:
 - `resnet_c`: a larger BatchNorm single-board ResNet with `channels=128`,
   `num_blocks=10`, `value_hidden_dim=256`, and `normalization=batchnorm`.
 
-`resnet_b` has completed local full-data supervised training metrics, but it is
-not a complete architecture-ablation result until evaluated under the matched
-protocols needed for the question being asked. `resnet_c` is implemented as the
-next measured ablation. It should not replace the no-normalization A/B baselines
-when making architecture comparisons.
+The repository publishes `resnet_c_epoch_030` at
+`models_archive/resnet_c_epoch_030.pt`. It has 3,600,612 parameters and uses the
+exact ResNet-C configuration above. The artifact is inference-only; its source
+run, checksum, training metrics, and limitations are recorded in
+`models_archive/manifest.json`.
+
+`resnet_b` and `resnet_c` have completed local full-data supervised training
+metrics, but they are not a complete architecture-ablation result until
+evaluated under matched protocols for the question being asked. ResNet-C must
+not silently replace the no-normalization A/B baselines in historical
+comparisons.
 
 ## 2. History ResNet
 

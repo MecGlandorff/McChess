@@ -1,6 +1,12 @@
 # Model Sharing Plan
 
-Status: pending
+Status: completed on 2026-08-11
+
+Implementation: `resnet_c_epoch_030` is published under `models_archive/` with
+an inference-only exporter, source and artifact checksums, terminal play,
+repository-hygiene enforcement, and a held-out 40,000-position test-prefix
+evaluation. The final scheduled epoch was selected for availability and
+reproducibility; Stockfish results were not used for checkpoint selection.
 
 ## Goal
 

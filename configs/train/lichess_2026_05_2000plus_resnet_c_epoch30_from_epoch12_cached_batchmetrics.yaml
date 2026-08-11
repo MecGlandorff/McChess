@@ -1,0 +1,27 @@
+# Consolidated ResNet-C run through epoch 16, continuing to epoch 30.
+#
+# `epochs` is the final target epoch. Rerunning this config resumes from the
+# furthest local checkpoint in this output directory.
+
+train_path: data/processed/lichess_2026_05_2000plus/train.jsonl
+val_path: data/processed/lichess_2026_05_2000plus/val.jsonl
+train_cache_dir: data/tensor_cache/lichess_2026_05_2000plus/train
+val_cache_dir: data/tensor_cache/lichess_2026_05_2000plus/val
+dataset_manifest_path: data/manifests/lichess_2026_05_2000plus_manifest.json
+output_dir: runs/lichess_2026_05_2000plus_resnet_c_epoch30_from_epoch12_cached_batchmetrics
+
+seed: 20260501
+device: cuda
+batch_size: 2048
+epochs: 30
+learning_rate: 0.0005
+weight_decay: 0.001
+exclude_norm_bias_from_weight_decay: true
+lr_scheduler: cosine
+warmup_steps: 2000
+min_learning_rate: 0.00005
+value_weight: 1.0
+num_workers: 4
+log_every_steps: 50
+
+model_preset: resnet_c

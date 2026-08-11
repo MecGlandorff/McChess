@@ -68,6 +68,39 @@ Move polished result tables to `RESULTS.md` only after the underlying experiment
 
 ## Completed Experiments
 
+### `lichess_2026_05_2000plus_resnet_c_epoch30`
+
+```yaml
+experiment_id: lichess_2026_05_2000plus_resnet_c_epoch30
+status: completed
+question: >
+  What supervised policy/value losses does the ResNet-C preset reach after the
+  predeclared 30-epoch schedule on the May 2026 Lichess 2000+ dataset?
+hypothesis: >
+  The larger BatchNorm preset should continue reducing matched validation loss
+  through the scheduled run, without implying playing strength.
+dataset_manifest: data/manifests/lichess_2026_05_2000plus_manifest.json
+model_config: resnet_c preset; exact fields in models_archive/manifest.json
+train_config: configs/train/lichess_2026_05_2000plus_resnet_c_epoch30_from_epoch12_cached_batchmetrics.yaml
+eval_config: configs/eval/supervised_resnet_c_epoch30_test_40000.yaml
+seed: 20260501
+git_commit: null
+checkpoint_path: models_archive/resnet_c_epoch_030.pt
+metrics_path: runs/lichess_2026_05_2000plus_resnet_c_epoch30_from_epoch12_cached_batchmetrics/metrics.jsonl
+results_path: reports/2026-08-11-supervised-resnet-c-epoch30-test-40000.md
+hardware: NVIDIA RTX 4060 8 GB; 16 GB system RAM
+started_at: 2026-08-10T20:28:52.941591+00:00
+completed_at: 2026-08-11T09:43:47.602200+00:00
+notes: >
+  Epoch-30 validation total loss was 2.382666417786772. The published artifact
+  is inference-only and was selected because it is the final checkpoint of the
+  completed schedule, not because of a Stockfish result. The source run did not
+  record a reliable Git commit. On the held-out 40,000-position test prefix,
+  legal-masked top-1 was 0.50225 and value MSE was 0.857878. The manifest
+  records the consolidated lineage and the overwritten epoch-8 ancestor
+  limitation.
+```
+
 ### `stockfish_mcts200_resnet_b_elo_200games`
 
 ```yaml

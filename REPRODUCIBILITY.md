@@ -38,6 +38,34 @@ If a run is interrupted between epochs or during a later epoch, `status.json`
 should still identify the latest completed epoch and the latest checkpoint path.
 The batch-level metrics may include logged train loss from the interrupted epoch.
 
+## Published Inference Artifacts
+
+Training checkpoints are local resumable state and remain outside normal Git
+history. A published model is exported separately with
+`scripts/export_model_artifact.py`. The exporter keeps model state and audit
+metadata, omits optimizer and global resume state, rejects machine-absolute
+training paths, and refuses to overwrite an existing artifact by default.
+
+The canonical artifact is `models_archive/resnet_c_epoch_030.pt`. Verify it
+against both `models_archive/SHA256SUMS` and `models_archive/manifest.json`.
+The manifest records the source-checkpoint checksum as well as the exported
+checksum, so the transformation remains auditable without committing the full
+resumable checkpoint.
+
+Recreate the artifact from the named local source checkpoint with:
+
+```powershell
+poetry run python scripts/export_model_artifact.py `
+  runs/lichess_2026_05_2000plus_resnet_c_epoch30_from_epoch12_cached_batchmetrics/checkpoint_epoch_030.pt `
+  models_archive/resnet_c_epoch_030.pt `
+  --artifact-id resnet_c_epoch_030 `
+  --exported-at 2026-08-11T20:46:01.694963+00:00
+```
+
+Published artifact filenames are immutable. Use `--overwrite` only when
+reproducing a byte-for-byte artifact locally, never to replace a published model
+under the same identifier.
+
 ## Tiny End-To-End Reproduction
 
 The repository will maintain a tiny path that can run on CPU:
