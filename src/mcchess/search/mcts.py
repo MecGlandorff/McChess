@@ -11,8 +11,12 @@ import chess
 import numpy as np
 import torch
 
-from mcchess.board import POLICY_SIZE, encode_board, legal_moves_with_policy_indices
-from mcchess.bots.base import legal_moves_or_raise
+from mcchess.board import (
+    POLICY_SIZE,
+    encode_board,
+    legal_moves_or_raise,
+    legal_moves_with_policy_indices,
+)
 
 
 class PolicyValueModel(Protocol):
