@@ -6,9 +6,8 @@ from typing import Protocol
 
 import chess
 
-
-class NoLegalMoveError(ValueError):
-    """Raised when a bot is asked to move from a terminal position."""
+from mcchess.board.legal_moves import NoLegalMoveError as NoLegalMoveError
+from mcchess.board.legal_moves import legal_moves_or_raise as legal_moves_or_raise
 
 
 class Bot(Protocol):
@@ -21,12 +20,3 @@ class Bot(Protocol):
 
     def choose_move(self, board: chess.Board) -> chess.Move:
         """Choose a legal move for the current board."""
-
-
-def legal_moves_or_raise(board: chess.Board) -> list[chess.Move]:
-    """Return legal moves or raise when the position is terminal."""
-
-    legal_moves = list(board.legal_moves)
-    if not legal_moves:
-        raise NoLegalMoveError("board has no legal moves")
-    return legal_moves

@@ -10,6 +10,7 @@ from mcchess.board.encoding import (
     square_to_tensor_coords,
 )
 from mcchess.board.legal_mask import legal_policy_mask
+from mcchess.board.legal_moves import NoLegalMoveError, legal_moves_or_raise
 from mcchess.board.move_index import (
     MOVE_PLANES,
     POLICY_SIZE,
@@ -25,6 +26,7 @@ __all__ = [
     "BOARD_TENSOR_SHAPE",
     "METADATA_PLANE_NAMES",
     "MOVE_PLANES",
+    "NoLegalMoveError",
     "PIECE_PLANE_NAMES",
     "PLANE_NAMES",
     "POLICY_SIZE",
@@ -33,6 +35,7 @@ __all__ = [
     "encode_board",
     "index_to_move",
     "legal_moves_with_policy_indices",
+    "legal_moves_or_raise",
     "legal_policy_mask",
     "move_to_index",
     "square_to_tensor_coords",
