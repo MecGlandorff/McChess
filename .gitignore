@@ -34,6 +34,7 @@ checkpoints/
 *.pt
 *.pth
 *.ckpt
+!models_archive/resnet_c_epoch_030.pt
 
 # Logs
 *.log
@@ -50,6 +51,7 @@ notebooks/scratch/
 TODO.local.md
 NOTES.local.md
 game.md
+tasked.md
 scratch/
 .tmp/
 .pytest-temp/

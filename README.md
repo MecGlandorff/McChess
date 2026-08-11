@@ -31,11 +31,24 @@
 
 ## Quick Start: Watch Or Play Search
 
-Open [notebooks/bot_vs_bot.ipynb](notebooks/bot_vs_bot.ipynb) with the
-`McChess (.venv)` Jupyter kernel to watch the local ResNet-B policy-only
-checkpoint play the same checkpoint with fixed-budget MCTS-50. Open
-[notebooks/play_mcts_bot.ipynb](notebooks/play_mcts_bot.ipynb) to play against
-the local ResNet-B MCTS bot with 300 simulations per move.
+The repository includes a compact inference-only epoch-30 ResNet-C model. After
+installing dependencies, play it directly from a terminal:
+
+```powershell
+poetry install
+poetry run mcchess-play
+```
+
+The supported default is fixed-budget MCTS-800. Use
+`poetry run mcchess-play --mode policy` for faster policy-only play, or
+`poetry run mcchess-play --help` for color, device, checkpoint, and search
+options. The artifact and its checksum, provenance, and limitations are under
+[`models_archive/`](models_archive/README.md).
+
+The play notebooks remain optional visual interfaces. Open
+[notebooks/play_mcts_bot.ipynb](notebooks/play_mcts_bot.ipynb) for MCTS-800 or
+[notebooks/play_policy_bot.ipynb](notebooks/play_policy_bot.ipynb) for
+policy-only play against the same bundled model.
 
 For the search math, see
 [MCTS And PUCT In McChess](reports/2026-06-17-mcts-puct-explainer.md). The
@@ -77,7 +90,7 @@ experiments:
 | Evaluation metrics | Legal-masked supervised top-k evaluation and value diagnostics via `python -m mcchess.eval.supervised` |
 | Search | Deterministic fixed-budget PUCT MCTS with masked policy priors and value backup sign flips |
 | Bots | Random, material, negamax alpha-beta, policy-only checkpoint, and MCTS checkpoint bots |
-| Play | Clickable notebooks for policy-only and MCTS play, plus `bot_vs_bot.ipynb` for live ResNet-B policy-only vs MCTS-50 |
+| Play | Terminal play against the bundled epoch-30 model with an MCTS-800 default, plus optional policy-only and notebook interfaces |
 | Reproducibility | Project invariants, dataset protocol, evaluation protocol, model card, configs, and CI checks |
 | Tests | Coverage for board encoding, move indexing, legal masks, PGNs, datasets, model shapes, losses, checkpoints, bots, and scripts |
 
@@ -129,8 +142,9 @@ total loss (`2.8403`) was already below ResNet-A's final epoch-20 loss
 
 ![ResNet-B loss curve](reports/assets/lichess_2026_05_resnet_b_loss_curve.svg)
 
-`resnet_c` is implemented as a larger BatchNorm preset. Its epoch-22 checkpoint
-has a completed external MCTS benchmark, documented below.
+`resnet_c` is implemented as a larger BatchNorm preset. The final epoch-30
+inference artifact is bundled under `models_archive/`; its epoch-22 checkpoint
+has the completed external MCTS benchmark documented below.
 
 An initial local MCTS smoke result is documented in
 [reports/2026-06-17-mcts-puct-explainer.md](reports/2026-06-17-mcts-puct-explainer.md).
@@ -208,6 +222,7 @@ status files, checkpoints, and plots.
 - `src/mcchess/search/`: fixed-budget PUCT MCTS
 - `scripts/`: dataset building, data filtering/downloading, tensor-cache building, and training
 - `configs/`: reproducible data, training, evaluation, and future self-play configs
+- `models_archive/`: the canonical inference-only epoch-30 model and provenance
 - `tests/`: chess-rule, data, model-shape, loss, checkpoint, bot, and script tests
 - `docs/`: architecture notes, coding standard, dataset protocol, evaluation protocol, and guides
 - `reports/`: development reports and diagnostic plots
@@ -289,7 +304,7 @@ Start notebooks through Poetry:
 poetry run jupyter nbclassic
 ```
 
-To play a policy-only checkpoint locally:
+To use the optional notebook interfaces locally:
 
 ```powershell
 New-Item -ItemType Directory -Force .local\jupyter\nbclassic-runtime, .local\ipython | Out-Null
@@ -298,10 +313,10 @@ $env:IPYTHONDIR = "$PWD\.local\ipython"
 poetry run jupyter nbclassic --no-browser --notebook-dir="$PWD" --port=8888 --ServerApp.token=mcchess
 ```
 
-Then open `notebooks/play_policy_bot.ipynb` with the `McChess (.venv)` kernel.
-To play against the MCTS bot, open `notebooks/play_mcts_bot.ipynb`. The
-notebooks are manual inspection tools, not arena evaluations or strength
-results.
+Then open `notebooks/play_policy_bot.ipynb` or `notebooks/play_mcts_bot.ipynb`
+with the `McChess (.venv)` kernel. Both use the canonical archived epoch-30
+model. The notebooks are manual inspection tools, not arena evaluations or
+strength results.
 
 CPU and NVIDIA GPU limits can be applied and restored as one local workflow:
 

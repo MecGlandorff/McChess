@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "artifact": {
+    "id": "resnet_c_epoch_030",
+    "artifact_schema_version": 1,
+    "filename": "resnet_c_epoch_030.pt",
+    "format": "pytorch_inference_checkpoint",
+    "sha256": "17ee11db2d007ff26f0842c561d42d6e53e3d1f7c042da8b9ba0d8d42b6af02f",
+    "size_bytes": 14450463
+  },
+  "selection": {
+    "rule": "Final epoch of the predeclared 30-epoch ResNet-C training schedule.",
+    "reason": "Publish the completed milestone checkpoint at a stable path for local play.",
+    "selected_epoch": 30,
+    "stockfish_results_used": false,
+    "strength_claim": null
+  },
+  "model": {
+    "family": "PolicyValueResNet",
+    "preset": "resnet_c",
+    "parameter_count": 3600612,
+    "config": {
+      "input_planes": 18,
+      "channels": 128,
+      "num_blocks": 10,
+      "policy_size": 4672,
+      "value_hidden_dim": 256,
+      "normalization": "batchnorm"
+    }
+  },
+  "source": {
+    "run_id": "lichess_2026_05_2000plus_resnet_c_epoch30_from_epoch12_cached_batchmetrics",
+    "checkpoint_path": "runs/lichess_2026_05_2000plus_resnet_c_epoch30_from_epoch12_cached_batchmetrics/checkpoint_epoch_030.pt",
+    "checkpoint_sha256": "11e3b644a1c09b33ec9ed372ae63972eb39cc802bcc38b76212045c192485c26",
+    "checkpoint_size_bytes": 43284877,
+    "training_config_path": "configs/train/lichess_2026_05_2000plus_resnet_c_epoch30_from_epoch12_cached_batchmetrics.yaml",
+    "training_git_commit": null,
+    "training_git_commit_note": "The source training run did not record a reliable Git commit.",
+    "checkpoint_saved_at": "2026-08-11T09:43:47.332093+00:00",
+    "run_started_at": "2026-08-10T20:28:52.941591+00:00",
+    "run_completed_at": "2026-08-11T09:43:47.602200+00:00",
+    "run_elapsed_seconds": 47693.31950629968,
+    "final_global_step": 1152380,
+    "seed": 20260501,
+    "device": "cuda"
+  },
+  "training_lineage": {
+    "epoch_ranges": [
+      {
+        "start": 1,
+        "end": 3,
+        "run_id": "lichess_2026_05_2000plus_resnet_c_epoch3_live_cached_batchmetrics"
+      },
+      {
+        "start": 4,
+        "end": 7,
+        "run_id": "lichess_2026_05_2000plus_resnet_c_epoch30_resume_live_cached_batchmetrics"
+      },
+      {
+        "start": 8,
+        "end": 12,
+        "run_id": "lichess_2026_05_2000plus_resnet_c_epoch30_resume_cached_batchmetrics"
+      },
+      {
+        "start": 13,
+        "end": 30,
+        "run_id": "lichess_2026_05_2000plus_resnet_c_epoch30_from_epoch12_cached_batchmetrics"
+      }
+    ],
+    "limitation": "The original epoch-8 checkpoint in the epoch-9 continuation lineage was overwritten before local consolidation. The available epoch-9 through epoch-30 descendants and their metrics were preserved; the copied epoch-8 file is not claimed to be that exact ancestor."
+  },
+  "training": {
+    "batch_size": 2048,
+    "epochs": 30,
+    "learning_rate": 0.0005,
+    "weight_decay": 0.001,
+    "exclude_norm_bias_from_weight_decay": true,
+    "lr_scheduler": "cosine",
+    "warmup_steps": 2000,
+    "min_learning_rate": 0.00005,
+    "value_weight": 1.0
+  },
+  "epoch_30_metrics": {
+    "train_total_loss": 2.2986476477092497,
+    "train_policy_loss": 1.485999278045786,
+    "train_value_loss": 0.8126483696522826,
+    "val_total_loss": 2.382666417786772,
+    "val_policy_loss": 1.5496135390107943,
+    "val_value_loss": 0.8330528825284884,
+    "elapsed_seconds": 15897.733195300214
+  },
+  "dataset": {
+    "manifest_path": "data/manifests/lichess_2026_05_2000plus_manifest.json",
+    "manifest_sha256": "5f1bc715aa6b3b5e52201cc73db2cab271873ad707162d1fb32b24617a04d834",
+    "description": "May 2026 Lichess standard rated games with both players rated 2000 or higher; human moves and final results only; PGN comments ignored.",
+    "split_by": "game",
+    "split_seed": 20260501,
+    "games_used": 999832,
+    "positions": {
+      "train": 73553382,
+      "validation": 747498,
+      "test": 734559
+    },
+    "filtered_pgn_sha256": "7b160195a78e92f9c1a00307ea27cd76aae95c32fc834f642c00449f2e33c94a",
+    "license_note": "The Lichess open database is distributed under CC0; see docs/DATASET_PROTOCOL.md."
+  },
+  "evaluation": {
+    "supervised": {
+      "status": "completed",
+      "config_path": "configs/eval/supervised_resnet_c_epoch30_test_40000.yaml",
+      "result_path": "reports/data/supervised_resnet_c_epoch30_test_40000.json",
+      "result_sha256": "67d0c91b403df694b11b4ee7f41b1404b882c8415f1144ed07494c9f37bdece7",
+      "report_path": "reports/2026-08-11-supervised-resnet-c-epoch30-test-40000.md",
+      "sample_count": 40000,
+      "sample_mode": "prefix",
+      "legal_masked_top_1": 0.50225,
+      "legal_masked_top_3": 0.783075,
+      "legal_masked_top_5": 0.880975,
+      "value_mse": 0.8578778240336935,
+      "raw_argmax_legal_fraction": 0.99935
+    },
+    "external_stockfish_development_smoke": {
+      "status": "completed",
+      "config_path": "configs/eval/stockfish_mcts1000_resnet_c_epoch30_batch8_elo.yaml",
+      "report_path": "reports/2026-08-11-stockfish-mcts1000-resnet-c-epoch30-22games.md",
+      "games": 22,
+      "mcts_simulations": 1000,
+      "used_for_checkpoint_selection": false
+    }
+  },
+  "contracts": {
+    "input": "float32 [batch, 18, 8, 8]",
+    "policy_logits": "float32 [batch, 4672]",
+    "value": "float32 [batch], side-to-move perspective, bounded to [-1, 1]",
+    "legality": "Generate and apply an explicit python-chess legal move mask before selection."
+  },
+  "export": {
+    "exported_at": "2026-08-11T20:46:01.694963+00:00",
+    "command": "poetry run python scripts/export_model_artifact.py runs/lichess_2026_05_2000plus_resnet_c_epoch30_from_epoch12_cached_batchmetrics/checkpoint_epoch_030.pt models_archive/resnet_c_epoch_030.pt --artifact-id resnet_c_epoch_030 --exported-at 2026-08-11T20:46:01.694963+00:00"
+  },
+  "known_limitations": [
+    "The policy imitates one observed human move per position; alternatives may also be strong.",
+    "The value target is the final game result rather than a position evaluation.",
+    "The model has no temporal history beyond state represented in the current FEN-derived board encoding.",
+    "Legal move masking is mandatory.",
+    "The included external benchmark is a small development run and does not establish a general Elo rating."
+  ]
+}

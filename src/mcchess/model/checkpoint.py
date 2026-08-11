@@ -118,7 +118,7 @@ def load_policy_value_checkpoint(
 
     checkpoint_path = Path(path)
     resolved_device = resolve_torch_device(device)
-    raw = torch.load(checkpoint_path, map_location=resolved_device)
+    raw = torch.load(checkpoint_path, map_location=resolved_device, weights_only=True)
     if not isinstance(raw, dict):
         raise ValueError(f"{checkpoint_path} must contain a checkpoint dictionary")
 
@@ -166,7 +166,7 @@ def _candidate_checkpoint_paths(root: Path, checkpoint_names: tuple[str, ...]) -
 
 
 def _load_checkpoint_summary(path: Path, metric_name: str) -> _CheckpointSummary:
-    raw = torch.load(path, map_location="cpu")
+    raw = torch.load(path, map_location="cpu", weights_only=True)
     if not isinstance(raw, dict):
         raise ValueError(f"{path} must contain a checkpoint dictionary")
     if not isinstance(raw.get("model_config"), dict) or not isinstance(

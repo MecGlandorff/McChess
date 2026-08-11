@@ -1,0 +1,4 @@
+models_archive/*.pt binary
+models_archive/*.json text eol=lf
+models_archive/SHA256SUMS text eol=lf
+reports/data/*.json text eol=lf

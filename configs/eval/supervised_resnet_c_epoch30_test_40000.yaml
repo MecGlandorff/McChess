@@ -1,0 +1,14 @@
+run_id: supervised_resnet_c_epoch30_test_40000
+checkpoint_path: models_archive/resnet_c_epoch_030.pt
+data_path: data/processed/lichess_2026_05_2000plus/test.jsonl
+output_dir: runs/supervised/resnet_c_epoch30_test_40000
+dataset_manifest_path: data/manifests/lichess_2026_05_2000plus_manifest.json
+split: test
+seed: 20260501
+device: cpu
+batch_size: 512
+max_samples: 40000
+num_workers: 0
+top_k: [1, 3, 5]
+value_near_zero_threshold: 0.05
+value_saturation_threshold: 0.95

@@ -8,6 +8,12 @@ McChess
 
 Compact neural chess policy/value model.
 
+The repository includes one concrete artifact,
+`models_archive/resnet_c_epoch_030.pt`: a 3,600,612-parameter ResNet-C with 18
+input planes, 128 channels, 10 residual blocks, BatchNorm, a 4,672-action policy
+head, and a 256-unit value head. Its provenance and checksum are recorded in
+`models_archive/manifest.json`.
+
 Potential architectures:
 
 - ResNet
@@ -43,6 +49,11 @@ It is designed to study:
 - making claims of high Elo without careful measurement
 
 ## Training Data
+
+The included epoch-30 artifact was trained on May 2026 Lichess standard rated
+games where both players were rated at least 2000 at game time. Supervision used
+human moves and final game results only. The dataset description, split counts,
+and checksums are in the artifact manifest.
 
 Allowed training data:
 

@@ -22,6 +22,11 @@ top_k: [1, 3, 5]
 The evaluator uses the JSONL shard, not only tensor caches, because legal-masked
 top-k metrics require reconstructing the board from FEN.
 
+`supervised_resnet_c_epoch30_test_40000.yaml` evaluates the bundled epoch-30
+artifact on a deterministic 40,000-position prefix of the held-out test split.
+The bounded prefix and exact dataset manifest are part of the recorded protocol;
+it must not be described as evaluation over all 734,559 test positions.
+
 Arena bot-vs-bot evaluation uses `mcchess.eval.arena` with a YAML config:
 
 ```yaml
@@ -114,6 +119,14 @@ live GUI:
 
 ```powershell
 poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts1000_resnet_c_epoch22_batch8_elo_200games.yaml --keep-awake
+```
+
+For the bundled epoch-30 model, the 22-game development config preserves the
+original source-checkpoint path used by the completed smoke run. The planned
+202-game config uses the byte-equivalent archived inference model:
+
+```powershell
+poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts1000_resnet_c_epoch30_batch8_elo_200games.yaml --keep-awake
 ```
 
 To watch moves in the terminal:

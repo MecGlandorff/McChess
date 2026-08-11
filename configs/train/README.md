@@ -53,3 +53,7 @@ Current development configs:
   resume config that starts from the 3-epoch ResNet-C pilot checkpoint and
   trains through epoch 30 with cosine LR scheduling and no weight decay on
   BatchNorm or bias parameters.
+- `lichess_2026_05_2000plus_resnet_c_epoch30_from_epoch12_cached_batchmetrics.yaml`:
+  exact final consolidated-run config used for epochs 13 through 30 of the
+  published artifact lineage. Rerunning it requires the preserved local output
+  directory; the lineage limitation is recorded in `models_archive/manifest.json`.

@@ -1,0 +1,229 @@
+{
+  "config": {
+    "batch_size": 512,
+    "checkpoint_path": "models_archive/resnet_c_epoch_030.pt",
+    "data_path": "data/processed/lichess_2026_05_2000plus/test.jsonl",
+    "dataset_manifest_path": "data/manifests/lichess_2026_05_2000plus_manifest.json",
+    "device": "cpu",
+    "max_samples": 40000,
+    "num_workers": 0,
+    "output_dir": "runs/supervised/resnet_c_epoch30_test_40000",
+    "run_id": "supervised_resnet_c_epoch30_test_40000",
+    "seed": 20260501,
+    "split": "test",
+    "top_k": [
+      1,
+      3,
+      5
+    ],
+    "value_near_zero_threshold": 0.05,
+    "value_saturation_threshold": 0.95
+  },
+  "metrics": {
+    "calibration_buckets": [
+      {
+        "bucket": "-1.00:-0.75",
+        "count": 458,
+        "mse": 0.25910029465666456,
+        "prediction_mean": -0.8152942896930412,
+        "sign_accuracy_decisive": 0.9362186788154897,
+        "target_mean": -0.8362445414847162
+      },
+      {
+        "bucket": "-0.75:-0.50",
+        "count": 3067,
+        "mse": 0.6708134529490133,
+        "prediction_mean": -0.605074279989293,
+        "sign_accuracy_decisive": 0.7810169491525424,
+        "target_mean": -0.540593413759374
+      },
+      {
+        "bucket": "-0.50:-0.25",
+        "count": 4842,
+        "mse": 0.8642286711761289,
+        "prediction_mean": -0.3667678521443674,
+        "sign_accuracy_decisive": 0.6422889969067609,
+        "target_mean": -0.2660057827344073
+      },
+      {
+        "bucket": "-0.25:0.00",
+        "count": 11959,
+        "mse": 0.9371324742750593,
+        "prediction_mean": -0.0964236296307641,
+        "sign_accuracy_decisive": 0.5309545049063337,
+        "target_mean": -0.05803160799397943
+      },
+      {
+        "bucket": "0.00:0.25",
+        "count": 11550,
+        "mse": 0.9325392385013845,
+        "prediction_mean": 0.09246634893377112,
+        "sign_accuracy_decisive": 0.536360280546327,
+        "target_mean": 0.06822510822510823
+      },
+      {
+        "bucket": "0.25:0.50",
+        "count": 4560,
+        "mse": 0.8456968102302348,
+        "prediction_mean": 0.36627113884478285,
+        "sign_accuracy_decisive": 0.6583255378858747,
+        "target_mean": 0.2969298245614035
+      },
+      {
+        "bucket": "0.50:0.75",
+        "count": 3035,
+        "mse": 0.6348346876457425,
+        "prediction_mean": 0.6068665668638377,
+        "sign_accuracy_decisive": 0.7950119576358046,
+        "target_mean": 0.5690280065897858
+      },
+      {
+        "bucket": "0.75:1.00",
+        "count": 529,
+        "mse": 0.3655363783826437,
+        "prediction_mean": 0.8226003664878456,
+        "sign_accuracy_decisive": 0.9019607843137255,
+        "target_mean": 0.775047258979206
+      }
+    ],
+    "constant_mean_mse": 0.9418090400000001,
+    "constant_zero_mse": 0.94185,
+    "legal_masked_policy_cross_entropy": 1.5596807624816895,
+    "legal_masked_top_k_accuracy": {
+      "1": 0.50225,
+      "3": 0.783075,
+      "5": 0.880975
+    },
+    "majority_sign_baseline_decisive": 0.5033975686149599,
+    "model_mae": 0.856029990371209,
+    "model_mse": 0.8578778240336935,
+    "model_rmse": 0.9262169422083001,
+    "ply_buckets": [
+      {
+        "bucket": "0-9",
+        "count": 5250,
+        "mse": 0.9505048786211633,
+        "prediction_mean": -0.004941303989406498,
+        "sign_accuracy_decisive": 0.5387673956262425,
+        "target_mean": 0.0
+      },
+      {
+        "bucket": "10-19",
+        "count": 5234,
+        "mse": 0.950248536590933,
+        "prediction_mean": -0.0072583503577370485,
+        "sign_accuracy_decisive": 0.5450737933785401,
+        "target_mean": 0.00038211692777990065
+      },
+      {
+        "bucket": "20-39",
+        "count": 10036,
+        "mse": 0.9135886236781169,
+        "prediction_mean": -0.005952570580488957,
+        "sign_accuracy_decisive": 0.5735723218007504,
+        "target_mean": 0.0025906735751295338
+      },
+      {
+        "bucket": "40-79",
+        "count": 14046,
+        "mse": 0.8173028683390934,
+        "prediction_mean": -0.0027783436719565537,
+        "sign_accuracy_decisive": 0.6466939022545014,
+        "target_mean": 0.008400968247187812
+      },
+      {
+        "bucket": "80+",
+        "count": 5434,
+        "mse": 0.6814041207481046,
+        "prediction_mean": 0.003622982086132431,
+        "sign_accuracy_decisive": 0.7252906976744186,
+        "target_mean": 0.020242914979757085
+      }
+    ],
+    "policy_cross_entropy": 1.5680414516448975,
+    "prediction_max": 0.9951133131980896,
+    "prediction_mean": -0.003575234515570628,
+    "prediction_min": -0.9587152600288391,
+    "prediction_near_zero_fraction": 0.205525,
+    "prediction_p1": -0.7614470756053925,
+    "prediction_p5": -0.596931192278862,
+    "prediction_p50": -0.00458630220964551,
+    "prediction_p95": 0.6018601208925246,
+    "prediction_p99": 0.7757362866401672,
+    "prediction_saturated_fraction": 0.000525,
+    "prediction_std": 0.33789496822858,
+    "raw_argmax_legal_fraction": 0.99935,
+    "raw_top_k_accuracy": {
+      "1": 0.50195,
+      "3": 0.782525,
+      "5": 0.880525
+    },
+    "relative_mse_improvement_vs_zero": 0.08915663424781703,
+    "sign_accuracy_decisive": 0.610182088442958,
+    "target_counts": {
+      "-1": 18709,
+      "0": 2326,
+      "1": 18965
+    },
+    "target_mean": 0.0064
+  },
+  "participants": {
+    "checkpoint": {
+      "completed_at": null,
+      "epoch": 30,
+      "metrics": {
+        "elapsed_seconds": 15897.733195300214,
+        "epoch": 30,
+        "train_policy_loss": 1.485999278045786,
+        "train_total_loss": 2.2986476477092497,
+        "train_value_loss": 0.8126483696522826,
+        "val_policy_loss": 1.5496135390107943,
+        "val_total_loss": 2.382666417786772,
+        "val_value_loss": 0.8330528825284884
+      },
+      "path": "models_archive/resnet_c_epoch_030.pt",
+      "saved_at": "2026-08-11T09:43:47.332093+00:00"
+    }
+  },
+  "protocol": {
+    "batch_size": 512,
+    "device": "cpu",
+    "num_workers": 0,
+    "sample_mode": "prefix",
+    "split": "test",
+    "top_k": [
+      1,
+      3,
+      5
+    ],
+    "value_near_zero_threshold": 0.05,
+    "value_saturation_threshold": 0.95
+  },
+  "run": {
+    "completed_at": "2026-08-11T21:06:58.277079+00:00",
+    "config_path": "configs\\eval\\supervised_resnet_c_epoch30_test_40000.yaml",
+    "elapsed_seconds": 257.4615825000219,
+    "git_commit": "d5f96740d2519ccb738b2815bb7cab792b07c462",
+    "id": "supervised_resnet_c_epoch30_test_40000",
+    "seed": 20260501,
+    "started_at": "2026-08-11T21:02:40.919496+00:00",
+    "status": "completed",
+    "type": "supervised"
+  },
+  "samples": {
+    "count": 40000,
+    "dataset_manifest_path": "data/manifests/lichess_2026_05_2000plus_manifest.json",
+    "dataset_path": "data/processed/lichess_2026_05_2000plus/test.jsonl",
+    "max_samples": 40000,
+    "split": "test"
+  },
+  "schema_version": 2,
+  "summary": {
+    "legal_masked_policy_top1": 0.50225,
+    "model_mse": 0.8578778240336935,
+    "policy_top1": 0.50195,
+    "raw_argmax_legal_fraction": 0.99935,
+    "sample_count": 40000,
+    "sign_accuracy_decisive": 0.610182088442958
+  }
+}

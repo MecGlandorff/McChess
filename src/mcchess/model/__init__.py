@@ -1,5 +1,11 @@
 """Policy/value neural network models and losses."""
 
+from mcchess.model.artifact import (
+    ARTIFACT_SCHEMA_VERSION,
+    ExportedModelArtifact,
+    export_inference_artifact,
+    sha256_file,
+)
 from mcchess.model.checkpoint import (
     CheckpointMetadata,
     LoadedPolicyValueCheckpoint,
@@ -20,7 +26,9 @@ from mcchess.model.model_presets import (
 )
 
 __all__ = [
+    "ARTIFACT_SCHEMA_VERSION",
     "CheckpointMetadata",
+    "ExportedModelArtifact",
     "LoadedPolicyValueCheckpoint",
     "ModelPreset",
     "PolicyValueLoss",
@@ -32,9 +40,11 @@ __all__ = [
     "ResidualBlock",
     "available_model_presets",
     "build_model_from_preset",
+    "export_inference_artifact",
     "find_best_policy_value_checkpoint",
     "get_model_preset",
     "load_policy_value_checkpoint",
     "policy_value_loss",
     "resolve_torch_device",
+    "sha256_file",
 ]
