@@ -63,6 +63,67 @@ def test_play_game_records_checkmate_from_agent_perspective() -> None:
     assert game.moves == ["f2f3", "e7e5", "g2g4", "d8h4"]
 
 
+@pytest.mark.parametrize("agent_color", [chess.WHITE, chess.BLACK], ids=["agent-white", "agent-black"])
+@pytest.mark.parametrize(
+    ("starting_fen", "move_uci", "result", "winner", "termination"),
+    [
+        pytest.param(
+            "7k/5K2/6Q1/8/8/8/8/8 w - - 0 1",
+            "g6g7", "1-0", "white", "checkmate", id="white-checkmate",
+        ),
+        pytest.param(
+            "rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2",
+            "d8h4", "0-1", "black", "checkmate", id="black-checkmate",
+        ),
+        pytest.param(
+            "7k/5K2/8/6Q1/8/8/8/8 w - - 0 1",
+            "g5g6", "1/2-1/2", None, "stalemate", id="stalemate",
+        ),
+        pytest.param(
+            "7k/8/8/8/8/8/8/KR6 w - - 98 1",
+            "b1b2", "1/2-1/2", None, "fifty_moves", id="claimable-draw",
+        ),
+        pytest.param(
+            chess.STARTING_FEN,
+            "e2e4", "1/2-1/2", None, "max_ply", id="nonterminal",
+        ),
+    ],
+)
+def test_play_game_records_outcome_at_ply_limit(
+    agent_color: chess.Color,
+    starting_fen: str,
+    move_uci: str,
+    result: str,
+    winner: str | None,
+    termination: str,
+) -> None:
+    board = chess.Board(starting_fen)
+    assert board.outcome(claim_draw=True) is None
+    agent = ScriptedBot("agent", [move_uci] if board.turn == agent_color else [])
+    opponent = ScriptedBot("opponent", [move_uci] if board.turn != agent_color else [])
+
+    game = play_game(
+        agent,
+        opponent,
+        game_index=0,
+        agent_color=agent_color,
+        max_ply=1,
+        starting_fen=starting_fen,
+    )
+
+    agent_color_name = "white" if agent_color == chess.WHITE else "black"
+    expected_score = 0.5 if winner is None else float(winner == agent_color_name)
+    board.push_uci(move_uci)
+    assert game.status == "completed"
+    assert game.result == result
+    assert game.winner == winner
+    assert game.agent_score == expected_score
+    assert game.termination == termination
+    assert game.ply_count == 1
+    assert game.moves == [move_uci]
+    assert game.final_fen == board.fen()
+
+
 def test_play_game_reports_move_events() -> None:
     events: list[dict[str, object]] = []
 

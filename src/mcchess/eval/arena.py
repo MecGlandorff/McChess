@@ -226,6 +226,7 @@ def play_game(
         if move_delay_seconds > 0.0:
             time.sleep(move_delay_seconds)
 
+    outcome = board.outcome(claim_draw=True)
     return _completed_record(
         game_index=game_index,
         agent_color=agent_color,
@@ -235,8 +236,8 @@ def play_game(
         moves=moves,
         opening_index=opening_index,
         starting_fen=starting_fen,
-        outcome=None,
-        termination="max_ply",
+        outcome=outcome,
+        termination=outcome.termination.name.lower() if outcome is not None else "max_ply",
     )
 
 
