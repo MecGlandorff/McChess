@@ -122,6 +122,7 @@ def play_stockfish_game(
         if move_delay_seconds > 0.0:
             time.sleep(move_delay_seconds)
 
+    outcome = board.outcome(claim_draw=True)
     return _completed_record(
         scheduled=scheduled,
         mcchess_color=scheduled.mcchess_color,
@@ -129,8 +130,8 @@ def play_stockfish_game(
         black_name=black_name,
         board=board,
         moves=moves,
-        outcome=None,
-        termination="max_ply",
+        outcome=outcome,
+        termination=outcome.termination.name.lower() if outcome is not None else "max_ply",
     )
 
 

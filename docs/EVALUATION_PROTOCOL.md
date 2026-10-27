@@ -42,6 +42,10 @@ nonterminal games as draws at `max_ply`, and writes `result.json` under
 Aggregate wins, draws, losses, and score are from the named `agent`
 perspective, not always from White's perspective.
 
+In both arena and Stockfish games, a `python-chess` outcome (with claimable
+draws enabled) reached on the final allowed ply takes precedence over the
+`max_ply` draw adjudication.
+
 `move_delay_seconds` may be used to pace live move printing for watchable local
 demos. It is not a compute budget and should not be interpreted as engine
 thinking time for policy-only bots.

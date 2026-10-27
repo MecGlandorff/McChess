@@ -180,6 +180,74 @@ def test_play_stockfish_game_records_mcchess_white_win() -> None:
     assert game.termination == "checkmate"
 
 
+@pytest.mark.parametrize(
+    "mcchess_color", [chess.WHITE, chess.BLACK], ids=["mcchess-white", "mcchess-black"],
+)
+@pytest.mark.parametrize(
+    ("starting_fen", "move_uci", "result", "winner", "termination"),
+    [
+        pytest.param(
+            "7k/5K2/6Q1/8/8/8/8/8 w - - 0 1",
+            "g6g7", "1-0", "white", "checkmate", id="white-checkmate",
+        ),
+        pytest.param(
+            "rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2",
+            "d8h4", "0-1", "black", "checkmate", id="black-checkmate",
+        ),
+        pytest.param(
+            "7k/5K2/8/6Q1/8/8/8/8 w - - 0 1",
+            "g5g6", "1/2-1/2", None, "stalemate", id="stalemate",
+        ),
+        pytest.param(
+            "7k/8/8/8/8/8/8/KR6 w - - 98 1",
+            "b1b2", "1/2-1/2", None, "fifty_moves", id="claimable-draw",
+        ),
+        pytest.param(
+            chess.STARTING_FEN,
+            "e2e4", "1/2-1/2", None, "max_ply", id="nonterminal",
+        ),
+    ],
+)
+def test_play_stockfish_game_records_outcome_at_ply_limit(
+    mcchess_color: chess.Color,
+    starting_fen: str,
+    move_uci: str,
+    result: str,
+    winner: str | None,
+    termination: str,
+) -> None:
+    board = chess.Board(starting_fen)
+    assert board.outcome(claim_draw=True) is None
+    level = elo_level(1600, games=1)
+    scheduled = ScheduledStockfishGame(
+        game_index=0,
+        level_game_index=0,
+        level=level,
+        mcchess_color=mcchess_color,
+        starting_fen=starting_fen,
+    )
+    bot = ScriptedBot("mcchess", [move_uci] if board.turn == mcchess_color else [])
+    engine = ScriptedEngine([move_uci] if board.turn != mcchess_color else [])
+
+    game = play_stockfish_game(bot, engine, scheduled, max_ply=1)
+
+    color_name = "white" if mcchess_color == chess.WHITE else "black"
+    expected_score = 0.5 if winner is None else float(winner == color_name)
+    expected_winner_name = None if winner is None else (
+        bot.name if winner == color_name else level.name
+    )
+    board.push_uci(move_uci)
+    assert game.status == "completed"
+    assert game.result == result
+    assert game.winner == winner
+    assert game.winner_name == expected_winner_name
+    assert game.mcchess_score == expected_score
+    assert game.termination == termination
+    assert game.ply_count == 1
+    assert game.moves == [move_uci]
+    assert game.final_fen == board.fen()
+
+
 def test_schedule_runs_full_stockfish_first_and_alternates_colors() -> None:
     config = eval_config([sanity_level(games=2), elo_level(1600, games=2), elo_level(1700, games=2)])
 
