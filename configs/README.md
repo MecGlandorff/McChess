@@ -1,16 +1,14 @@
 # Configs
 
-This directory stores YAML configs for data processing, model training, evaluation, MCTS, and self-play.
+YAML configs make data preparation, training, and evaluation reproducible.
 
-Suggested layout:
+| Directory | Contents |
+|---|---|
+| [data](data/README.md) | PGN sources, filters, splits, and output paths |
+| [train](train/README.md) | Supervised training and resume settings |
+| [eval](eval/README.md) | Held-out metrics, arena games, and external benchmarks |
+| [model](model/README.md) | Selecting built-in architecture presets |
 
-```text
-configs/
-  data/
-  model/
-  train/
-  eval/
-  selfplay/
-```
-
-All reportable experiments should be reproducible from configs.
+Self-play remains a future milestone. Preserve historical configs referenced
+by reports; changed data, checkpoints, or budgets need a distinct run ID and
+output directory.

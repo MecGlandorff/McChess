@@ -24,7 +24,7 @@ Before making nontrivial changes, read:
 
 If the task touches experiments or evaluation, also read:
 
-- `EXPERIMENTS.md`
+- `RESULTS.md` and the relevant dated reports under `reports/`
 - `docs/EVALUATION_PROTOCOL.md`
 - `REPRODUCIBILITY.md`
 

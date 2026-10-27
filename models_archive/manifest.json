@@ -77,7 +77,7 @@
     "exclude_norm_bias_from_weight_decay": true,
     "lr_scheduler": "cosine",
     "warmup_steps": 2000,
-    "min_learning_rate": 0.00005,
+    "min_learning_rate": 5e-05,
     "value_weight": 1.0
   },
   "epoch_30_metrics": {
@@ -126,6 +126,22 @@
       "games": 22,
       "mcts_simulations": 1000,
       "used_for_checkpoint_selection": false
+    },
+    "external_stockfish_benchmark": {
+      "status": "completed",
+      "config_path": "configs/eval/stockfish_mcts1000_resnet_c_epoch30_batch8_elo_200games.yaml",
+      "result_path": "reports/data/stockfish_mcts1000_resnet_c_epoch30_batch8_elo_200games.json",
+      "result_sha256": "e18c77d42f864a40a1ab2028cea7433b949c8a4b7bd2c363eff11c658317a780",
+      "report_path": "reports/2026-08-12-stockfish-mcts1000-resnet-c-epoch30-200games.md",
+      "games": 202,
+      "included_games": 200,
+      "included_wins": 150,
+      "included_draws": 37,
+      "included_losses": 13,
+      "included_score": 0.8425,
+      "mcts_simulations": 1000,
+      "inference_batch_size": 8,
+      "used_for_checkpoint_selection": false
     }
   },
   "contracts": {
@@ -143,6 +159,6 @@
     "The value target is the final game result rather than a position evaluation.",
     "The model has no temporal history beyond state represented in the current FEN-derived board encoding.",
     "Legal move masking is mandatory.",
-    "The included external benchmark is a small development run and does not establish a general Elo rating."
+    "External benchmarks use Stockfish UCI_Elo handicap settings from one starting position and do not establish a general Elo rating."
   ]
 }

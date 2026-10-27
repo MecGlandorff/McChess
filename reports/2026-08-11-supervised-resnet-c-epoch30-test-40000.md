@@ -22,6 +22,16 @@ human moves and final game outcomes; it does not measure Elo or engine strength.
 
 ## Results
 
+The source experiment asked what losses ResNet-C reaches after the predeclared
+30-epoch schedule. Its recorded hypothesis was that the larger BatchNorm preset
+would continue reducing matched validation loss, without implying playing
+strength. Training hardware was recorded as NVIDIA RTX 4060 8 GB and 16 GB
+system RAM; this is separate from the CPU evaluation below. Training metrics
+remain at
+`runs/lichess_2026_05_2000plus_resnet_c_epoch30_from_epoch12_cached_batchmetrics/metrics.jsonl`.
+The [model manifest](../models_archive/manifest.json) retains the training
+config, timestamps, seed, final losses, and continuation-lineage limitations.
+
 | Metric | Value |
 |---|---:|
 | Legal-masked policy cross-entropy | 1.559681 |

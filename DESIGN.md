@@ -1,408 +1,152 @@
 # Design
 
-## System Overview
-
 ```text
-PGN games
-  -> dataset builder
-  -> board tensors, policy targets, value targets
-  -> policy/value model
-  -> policy-only bot
-  -> MCTS-enhanced bot
-  -> arena evaluation
+human PGNs -> JSONL shards + manifest -> board tensors and targets
+           -> supervised policy/value ResNet -> policy-only or MCTS bot
+           -> arena and held-out evaluation
 ```
 
-## Contract Source
+[INVARIANTS.md](INVARIANTS.md) is the contract source. Changes to encodings,
+value perspective, model outputs, splits, or search semantics require matching
+implementation, tests, and documentation changes.
 
-`INVARIANTS.md` is the source of truth for implementation contracts that should not drift silently.
+## Board Encoding
 
-When changing board tensors, move indexing, value perspective, model outputs, dataset splits, or MCTS semantics, update:
+`encode_board` returns a `float32` tensor of shape `[18, 8, 8]`.
 
-- the implementation
-- tests
-- this design document
-- `INVARIANTS.md`
-- any affected config or protocol docs
+| Plane (1-based) | Meaning |
+|---|---|
+| 1-6 | White pawn, knight, bishop, rook, queen, king occupancy |
+| 7-12 | Black pawn, knight, bishop, rook, queen, king occupancy |
+| 13 | White to move |
+| 14-15 | White kingside, queenside castling rights |
+| 16-17 | Black kingside, queenside castling rights |
+| 18 | Legal en-passant target square |
 
-## Board Representation
+Occupancy and en-passant planes are sparse binary planes. Side-to-move and
+castling planes are filled with `1.0` when true and `0.0` otherwise.
+The en-passant plane is zero unless `python-chess` reports a legal en-passant
+capture. A stale FEN target is not encoded; after `1. e4 a6 2. e5 d5`, `d6`
+is marked. This distinguishes positions with different legal pawn captures
+without making the model responsible for legality.
 
-Implemented encoder: single-position tensor with shape:
+Rows run rank 8 to rank 1; columns run file a to file h:
+`a8=(0,0)`, `h8=(0,7)`, `a1=(7,0)`, `h1=(7,7)`.
+The encoder has no history, repetition state, halfmove clock, or fullmove
+number. Older 17-plane checkpoints are incompatible.
 
-```text
-[18, 8, 8]
-```
+## Move Indexing And Legality
 
-Implemented plane order:
-
-1. white pawns
-2. white knights
-3. white bishops
-4. white rooks
-5. white queens
-6. white king
-7. black pawns
-8. black knights
-9. black bishops
-10. black rooks
-11. black queens
-12. black king
-13. white to move
-14. white kingside castling right
-15. white queenside castling right
-16. black kingside castling right
-17. black queenside castling right
-18. en-passant target square
-
-Future metadata planes may include:
-
-- halfmove clock, normalized
-- fullmove number, normalized or clipped
-
-Piece planes are one-hot occupancy planes.
-
-Side-to-move and castling metadata planes are constant planes filled with `1.0`
-when true and `0.0` when false.
-
-The en-passant target plane is sparse. It is all zeros unless
-`python-chess` reports that an en-passant capture is legal in the current
-position. When legal, the plane contains `1.0` only on the en-passant target
-square. For example, after `1. e4 a6 2. e5 d5`, White can play `exd6 e.p.`, so
-the target square `d6` is marked. A FEN en-passant square that does not permit a
-legal en-passant capture is not encoded.
-
-Rationale:
-
-- Including legal en-passant availability removes an input alias where two
-  positions with identical pieces, castling rights, and side to move can have
-  different legal policy targets.
-- The legal policy mask remains the source of truth for move legality; the
-  neural network is not responsible for deciding whether en passant is legal.
-
-Caveats:
-
-- This changes the model input shape, so models trained with the older
-  17-plane encoder would not be checkpoint-compatible.
-- The plane encodes current legal en-passant availability only. It does not
-  encode longer history, repetition state, the halfmove clock, or the fullmove
-  number.
-
-Square orientation:
-
-- tensor row 0 is rank 8
-- tensor row 7 is rank 1
-- tensor column 0 is file a
-- tensor column 7 is file h
-
-Examples:
-
-- `a8 -> (0, 0)`
-- `h8 -> (0, 7)`
-- `a1 -> (7, 0)`
-- `h1 -> (7, 7)`
-
-The encoder implementation must also document square orientation. Tests should verify that pieces land on expected squares, not only that piece counts match.
-
-## Value Convention
-
-The value target is always from the side-to-move perspective at the current position.
-
-- side to move eventually wins: `+1`
-- side to move eventually loses: `-1`
-- draw: `0`
-
-For example:
-
-- White to move and White wins: `+1`
-- Black to move and White wins: `-1`
-- White to move and Black wins: `-1`
-- Black to move and Black wins: `+1`
-
-## Move Encoding
-
-Implemented policy space: `8 x 8 x 73 = 4672`.
-
-Policy index formula:
+The policy space is `8 * 8 * 73 = 4672`:
 
 ```text
 index = from_square * 73 + move_plane
 ```
 
-`from_square` uses the `python-chess` square index:
+`from_square` follows `python-chess`: `a1=0`, `h1=7`, `a8=56`, `h8=63`.
+It does not use the tensor row orientation.
 
-- `a1 = 0`
-- `h1 = 7`
-- `a8 = 56`
-- `h8 = 63`
+| Planes | Geometry |
+|---|---|
+| 0-55 | Eight queen-like directions, each with distances 1-7 |
+| 56-63 | Eight knight offsets |
+| 64-72 | Knight, bishop, rook underpromotions; each with forward, left, right |
 
-Move planes:
+Queen-like direction order in `(file, rank)` offsets:
+`(0,+1), (+1,+1), (+1,0), (+1,-1), (0,-1), (-1,-1), (-1,0), (-1,+1)`.
 
-```text
-0-55   queen-like moves: 8 directions x distances 1-7
-56-63  knight moves: 8 possible offsets
-64-72  underpromotions: knight, bishop, rook x forward, left, right
-```
+Knight offset order:
+`(+1,+2), (+2,+1), (+2,-1), (+1,-2), (-1,-2), (-2,-1), (-2,+1), (-1,+2)`.
 
-Queen-like direction order:
+Underpromotion directions are from the moving side's perspective. Queen
+promotions use ordinary queen-like pawn geometry. Castling uses the king's
+two-square horizontal move; en passant uses the pawn's diagonal capture.
 
-1. north `(0, +1)`
-2. north-east `(+1, +1)`
-3. east `(+1, 0)`
-4. south-east `(+1, -1)`
-5. south `(0, -1)`
-6. south-west `(-1, -1)`
-7. west `(-1, 0)`
-8. north-west `(-1, +1)`
+| API | Contract |
+|---|---|
+| `move_to_index(board, move)` | Integer index; raises `ValueError` for illegal or unrepresentable moves. |
+| `index_to_move(board, index)` | Legal `chess.Move`, or `None` for out-of-range or illegal indices. |
+| `legal_policy_mask(board)` | `float32 [4672]`, with `1.0` at legal indices and `0.0` elsewhere. |
+| `legal_moves_with_policy_indices(board)` | Legal moves and indices computed in one pass for masking and expansion. |
 
-Knight direction order:
+All legality comes from `python-chess`. Mask illegal actions before move
+selection and MCTS expansion.
 
-1. `(+1, +2)`
-2. `(+2, +1)`
-3. `(+2, -1)`
-4. `(+1, -2)`
-5. `(-1, -2)`
-6. `(-2, -1)`
-7. `(-2, +1)`
-8. `(-1, +2)`
+## Targets And Model
 
-Queen promotions are encoded as ordinary queen-like pawn moves.
+Supervised policy targets are the played human move. Value targets are the
+final result from the current side-to-move perspective: win `+1`, loss `-1`,
+draw `0`. For a White win, White-to-move positions have target `+1` and
+Black-to-move positions have target `-1`.
 
-Underpromotion planes encode only knight, bishop, and rook promotions. Promotion directions are from the moving side's perspective:
-
-- forward
-- left capture
-- right capture
-
-Castling is encoded as the king's ordinary two-square horizontal move.
-
-En passant is encoded as the pawn's ordinary diagonal capture geometry.
-
-The move-indexing layer must provide:
-
-```python
-move_to_index(board, move) -> int
-index_to_move(board, index) -> chess.Move | None
-legal_policy_mask(board) -> np.ndarray
-legal_moves_with_policy_indices(board) -> list[tuple[chess.Move, int]]
-```
-
-`move_to_index` raises `ValueError` for illegal or unrepresentable moves.
-
-`index_to_move` returns `None` when the index is out of range or does not decode to a legal move in the current position.
-
-`legal_policy_mask` returns a `float32` array of shape `[4672]` with `1.0` at legal move indices.
-
-`legal_moves_with_policy_indices` enumerates `python-chess` legal moves and
-computes their policy indices in the same pass. It is used by legal masking and
-MCTS expansion to avoid repeating legal move generation for every index.
-
-Legal masking must use python-chess.
-
-The neural model should never be responsible for deciding legality.
-
-## Training Targets
-
-Supervised learning sample:
-
-- input: board tensor
-- policy target: move played in human game
-- value target: final result from side-to-move perspective
-
-Search-distillation sample:
-
-- input: board tensor
-- policy target: MCTS visit distribution
-- value target: final game result or MCTS value target
-
-Self-play sample:
-
-- input: board tensor
-- policy target: MCTS visit distribution
-- value target: final self-play result
-
-## Training Artifacts
-
-Supervised training run directories contain the copied config, `metrics.jsonl`,
-`batch_metrics.jsonl`, `status.json`, checkpoints, `loss.svg`, and
-`batch_loss.svg`.
-
-`metrics.jsonl` records one row per completed epoch, including train and
-validation policy/value/total losses. `batch_metrics.jsonl` records train-only
-losses at the configured `log_every_steps` interval, including the latest batch
-loss and the running average within the current epoch. Full validation still
-runs at epoch boundaries by default.
-
-Checkpoint files use PyTorch serialization and contain:
-
-- `model_state_dict`
-- `optimizer_state_dict` for checkpoints written by the current trainer
-- `model_config`
-- `train_config`
-- `epoch`
-- `global_step`
-- `metrics`
-- `saved_at`
-- `completed_at`
-
-The trainer refreshes `batch_loss.svg` while an epoch is running. It writes
-`checkpoint_epoch_###.pt`, `checkpoint_latest.pt`, and `loss.svg` after each
-completed epoch. `checkpoint.pt` is the final completed-run checkpoint and is
-written only after all configured epochs finish.
-
-Training configs may set `resume_from_checkpoint`; in that mode `epochs` is the
-final target epoch and training starts from the next epoch after the checkpoint.
-Older checkpoints without optimizer state can still be used as model-weight
-warm starts, but AdamW moments are reset.
-
-## Playable Bots
-
-Initial playable agents use a small `choose_move(board)` bot interface.
-
-- random legal-move bot
-- one-ply material bot
-- policy-only checkpoint bot
-- fixed-budget MCTS checkpoint bot
-
-The policy-only bot loads a supervised `PolicyValueResNet` checkpoint, encodes
-the current board, runs the policy head, masks illegal moves with
-`legal_policy_mask(board)`, and chooses the highest-logit legal move. It does
-not use MCTS or the value head for move selection.
-
-The MCTS bot loads the same checkpoint format and runs fixed-budget PUCT search.
-It expands legal moves only, derives priors from legally masked policy logits,
-evaluates nonterminal leaves with the value head, and flips value perspective
-on every backup ply. By default it evaluates one leaf at a time. Configs may set
-`inference_batch_size > 1` to reserve several selected leaf paths and evaluate
-their neural inputs in one batch, which improves CUDA utilization but can change
-search trajectories through virtual visit reservations.
-
-Within each expansion, MCTS enumerates legal moves and policy indices once,
-applies softmax only to those legal logits, and transfers the resulting legal
-priors and value to the host as one batch. Model calls use
-`torch.inference_mode()`, and nodes store their selected-visit total for PUCT
-instead of recomputing it from all outgoing edges.
-
-The notebook play helper provides a click-to-move ipywidgets board whose
-buttons are built once and mutated in place after each move. It is an
-interactive debugging aid, not an arena evaluation or strength result.
-
-## Model Families
-
-Baseline:
-
-- `PolicyValueResNet`: compact single-board ResNet policy/value network.
-  Current input shape is `[batch, 18, 8, 8]`; outputs are
-  `policy_logits: [batch, 4672]` and `value: [batch]`. `resnet_a` and
-  `resnet_b` do not use normalization layers. This keeps the first supervised
-  ResNets minimal and makes normalization changes measurable as matched
-  ablations. `resnet_c` adds BatchNorm explicitly rather than silently replacing
-  the no-normalization baselines.
-- Named ResNet presets currently include `resnet_a`, `resnet_b`, and
-  `resnet_c`.
-
-Ablations:
-
-- History ResNet
-- ResNet + square attention
-- LSTM over board history
-- LSTM + temporal attention
-- Temporal Transformer
-
-Future optional:
-
-- NNUE-style sparse accumulator. If added, this is a McChess-defined neural
-  architecture, not imported Stockfish NNUE. It must be trained only from
-  allowed project targets, keep explicit legal move masking, and preserve the
-  model output contract:
+The current model is `PolicyValueResNet`:
 
 ```text
+input:         [batch, 18, 8, 8]
 policy_logits: [batch, 4672]
-value: [batch]
+value:         [batch], bounded to [-1, 1]
 ```
 
-An NNUE-style implementation would need a documented sparse feature schema and
-tests showing that any incremental accumulator state matches full feature
-recomputation. A value-only NNUE scorer would be a separate experimental bot
-type and must not silently replace the policy/value model contract.
+[ARCHITECTURES.md](docs/ARCHITECTURES.md) describes the presets and deferred
+families. Future distillation would use McChess visit distributions; future
+self-play would use McChess game results. Neither pipeline is implemented.
 
-## MCTS
+## Data And Training Artifacts
 
-Use PUCT-style selection:
+The PGN reader emits one sample per played move, rejects corrupt/illegal or
+unknown-result games without partial samples, and counts rejected games.
+The builder assigns splits by game using a seeded RNG, writes
+`train.jsonl`, `val.jsonl`, `test.jsonl`, and a manifest with source checksum,
+filters, counts, split settings, creation time, and code version.
+
+JSONL FEN records remain the source of truth. Optional tensor caches avoid
+repeated parsing and encoding during training; shapes, dtypes, completion
+markers, and provenance are specified in the
+[dataset protocol](docs/DATASET_PROTOCOL.md).
+
+Training saves copied config, epoch and batch metrics, status, loss plots, and
+checkpoints. Current training checkpoints include model/optimizer state, model
+and train configs, epoch, global step, metrics, and timestamps. With
+`resume_from_checkpoint`, `epochs` is the final target epoch. Older checkpoints
+without optimizer state warm-start weights with a reset optimizer.
+
+Checkpoint lifecycle and inference-only export are documented in
+[REPRODUCIBILITY.md](REPRODUCIBILITY.md).
+
+## Bots And MCTS
+
+Bots expose `choose_move(board)`. Baselines are random, one-ply material, and
+negamax. Policy-only play selects the highest-logit legal move and does not use
+the value head. MCTS uses legal priors and side-to-move leaf values:
 
 ```text
-score = Q(s,a) + c_puct * P(s,a) * sqrt(N(s)) / (1 + N(s,a))
+PUCT = Q(s,a) + c_puct * P(s,a) * sqrt(N(s)) / (1 + N(s,a))
 ```
 
-Requirements:
+Search evaluates the root, runs a fixed number of simulations, and selects a
+root move by visits, then mean value and prior. Values change sign at every
+backup ply. Terminal outcomes use game rules rather than neural evaluation.
+Board copies retain move history for repetition and claimable draws.
 
-- expand legal moves only
-- mask illegal policy logits
-- evaluate leaves with value head
-- flip value sign at each ply during backup
-- support fixed simulation budget
-- handle terminal positions without ordinary network evaluation
-- record non-default batched inference settings when used in evaluation
+Model calls use `torch.inference_mode()`; checkpoint loading also sets eval
+mode. Direct `MCTSSearch` callers must provide an eval-mode model themselves.
+Legal moves are indexed once per expansion, softmax covers only legal logits,
+and priors/values are transferred to the host together.
 
-## Dataset Pipeline
-
-`src/mcchess/data/pgn_reader.py` streams a PGN file and yields one sample
-per played move. Games with unknown result (`*`) or any parse/legality
-error are skipped and counted; no partial samples are emitted.
-
-`src/mcchess/data/dataset_builder.py` calls the reader, assigns each new
-`game_id` a split via a seeded `random.Random`, and writes
-`train.jsonl`, `val.jsonl`, `test.jsonl` plus a manifest JSON.
-
-JSONL sample fields match `docs/DATASET_PROTOCOL.md`:
-
-```json
-{
-  "game_id": "g000000",
-  "ply": 0,
-  "fen": "rnbqkbnr/pppppppp/...",
-  "move_uci": "e2e4",
-  "policy_index": 748,
-  "value": 0.0,
-  "result": "1/2-1/2",
-  "split": "train"
-}
-```
-
-The manifest written next to the shards records source, sha256 checksum,
-raw/used/skipped game counts (with separate corrupt and unknown-result
-counters), position counts per split, the configured ratios and seed,
-filters, `created_at`, `code_version`, and a `schema_version` integer.
-
-The dataset builder does not encode board tensors to disk; downstream
-training code is expected to decode the FEN and call `encode_board`. This
-keeps shards portable and decoupled from any encoder revisions.
-
-For throughput-sensitive local CUDA runs, a JSONL shard may be converted into
-an optional tensor cache documented in `docs/DATASET_PROTOCOL.md`. The JSONL
-shard remains the source of truth; the cache stores encoded `uint8` board planes
-and policy/value targets so training can avoid per-sample FEN parsing in the
-hot path.
+The default inference batch size is 1. Larger batches reserve several paths
+before inference. Paths reaching one pending node share a neural evaluation;
+simulation count is therefore distinct from model calls or distinct evaluated
+positions. Reservations can change search trajectories, so the batch size is
+part of the evaluation protocol. Each move currently starts a fresh tree.
 
 ## Evaluation
 
-Evaluation should use:
+The arena alternates colors with the named agent White first and reports
+W/D/L from that agent's perspective. Nonterminal games at `max_ply` are draws.
+Saved games include colors, result, termination, ply count, final FEN, moves,
+and search budgets. Fixed opening lists pair adjacent games with colors swapped.
 
-- fixed random seed
-- alternating colors
-- fixed number of games
-- max ply limit
-- same opening positions when comparing models
-- fixed node budgets for MCTS
-- win/draw/loss table
-- illegal move count
-- checkpoint and config identifiers
-- runtime or speed metrics when practical
-
-Do not claim Elo strength without a careful protocol.
-
-The implemented arena runner plays two configured bots as `agent` and
-`opponent`. Colors alternate with the agent playing White in game 0 and Black
-in game 1. Aggregate wins, draws, losses, and score are always from the named
-agent's perspective. Nonterminal games at the configured `max_ply` are
-adjudicated as draws. The runner records per-game colors, result, termination,
-ply count, final FEN, UCI move list, and MCTS budget metadata when either side
-uses the MCTS bot.
+Held-out supervised evaluation reconstructs JSONL FENs for legal top-k
+metrics. External Stockfish games are evaluation-only. Protocol, budget,
+opening, and reporting requirements are in
+[docs/EVALUATION_PROTOCOL.md](docs/EVALUATION_PROTOCOL.md).

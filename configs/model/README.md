@@ -1,20 +1,11 @@
-# Model Configs
+# Model Selection
 
-Model architecture configs belong here.
-
-Current built-in presets are exported by `mcchess.model`:
-
-- `resnet_a`: default single-board `PolicyValueResNet` configuration.
-- `resnet_b`: deeper single-board ResNet with `channels=64`, `num_blocks=6`,
-  and `value_hidden_dim=128`.
-- `resnet_c`: larger BatchNorm single-board ResNet with `channels=128`,
-  `num_blocks=10`, `value_hidden_dim=256`, and `normalization=batchnorm`.
-
-Training configs may select a preset with:
+Training configs choose one built-in preset or an inline `model` mapping:
 
 ```yaml
-model_preset: resnet_b
+model_preset: resnet_c
 ```
 
-Do not set both `model_preset` and an inline `model` mapping in the same
-training config.
+Do not set both. [ARCHITECTURES.md](../../docs/ARCHITECTURES.md) lists current
+preset dimensions and normalization; the model config saved in a checkpoint
+is authoritative for historical runs.
