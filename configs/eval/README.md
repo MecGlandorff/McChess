@@ -122,8 +122,11 @@ poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts1000_resn
 ```
 
 For the bundled epoch-30 model, the 22-game development config preserves the
-original source-checkpoint path used by the completed smoke run. The planned
-202-game config uses the byte-equivalent archived inference model:
+original source-checkpoint path used by the completed smoke run. The completed
+[202-game benchmark](../../reports/2026-08-12-stockfish-mcts1000-resnet-c-epoch30-200games.md)
+also used that training checkpoint. The current config uses the archived
+inference model with identical weights and no optimizer state. Copy it with a
+new run ID and output directory before rerunning:
 
 ```powershell
 poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts1000_resnet_c_epoch30_batch8_elo_200games.yaml --keep-awake

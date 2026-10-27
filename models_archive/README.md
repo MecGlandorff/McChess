@@ -44,14 +44,18 @@ move. A separate 40,000-position held-out test-prefix evaluation recorded
 legal-masked top-1/top-3/top-5 accuracies of 0.50225/0.783075/0.880975 and value
 MSE 0.857878. See the
 [evaluation report](../reports/2026-08-11-supervised-resnet-c-epoch30-test-40000.md)
-for protocol and interpretation limits.
+for protocol and interpretation limits. The completed
+[202-game external benchmark](../reports/2026-08-12-stockfish-mcts1000-resnet-c-epoch30-200games.md)
+records 150 wins, 37 draws, and 13 losses across its 200 included handicap games;
+two full-strength sanity games were losses. The manifest links the published
+result JSON and its checksum.
 
 ## Scope
 
 The artifact was trained from human Lichess moves and final game results. It
 contains no Stockfish or Leela labels, Syzygy tablebase labels, external engine
 weights, optimizer state, or training dataset. Stockfish appears only in a
-separate post-training development benchmark and was not used to select this
+separate post-training external benchmarks and was not used to select this
 checkpoint.
 
 The artifact is published so the repository is immediately playable. It is not

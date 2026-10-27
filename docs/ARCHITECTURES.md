@@ -1,220 +1,68 @@
 # Architectures
 
-This project compares architectures as controlled ablations.
-
-All architectures must output:
-
-```text
-policy_logits: [batch, 4672]
-value: [batch]
-```
-
-The value must be in `[-1, 1]`.
-
-## 1. ResNet
-
-Purpose:
-
-- baseline policy/value model
-- fast inference
-- strong enough for MCTS experiments
-
-Current implementation:
-
-- `src/mcchess/model/network.py`
-- class: `PolicyValueResNet`
-- config: `ResNetConfig`
-- presets: `resnet_a`, `resnet_b`, `resnet_c`
-
-Input:
-
-```text
-[batch, 18, 8, 8]
-```
-
-Architecture:
-
-```text
-conv stem
-residual tower
-policy head
-value head
-```
-
-`resnet_a` and `resnet_b` do not use normalization layers. BatchNorm, GroupNorm,
-or other normalization variants should be treated as matched ablations rather
-than silently replacing those baseline architectures.
-
-Outputs:
-
-```text
-policy_logits: [batch, 4672]
-value: [batch]
-```
-
-Packaged presets:
-
-- `resnet_a`: the default `ResNetConfig()` single-board model.
-- `resnet_b`: a deeper compact single-board baseline with `channels=64`,
-  `num_blocks=6`, and `value_hidden_dim=128`.
-- `resnet_c`: a larger BatchNorm single-board ResNet with `channels=128`,
-  `num_blocks=10`, `value_hidden_dim=256`, and `normalization=batchnorm`.
-
-The repository publishes `resnet_c_epoch_030` at
-`models_archive/resnet_c_epoch_030.pt`. It has 3,600,612 parameters and uses the
-exact ResNet-C configuration above. The artifact is inference-only; its source
-run, checksum, training metrics, and limitations are recorded in
-`models_archive/manifest.json`.
-
-`resnet_b` and `resnet_c` have completed local full-data supervised training
-metrics, but they are not a complete architecture-ablation result until
-evaluated under matched protocols for the question being asked. ResNet-C must
-not silently replace the no-normalization A/B baselines in historical
-comparisons.
-
-## 2. History ResNet
-
-Purpose:
-
-- test whether raw board history helps
-
-Input:
-
-```text
-[batch, history_planes, 8, 8]
-```
-
-where:
-
-```text
-history_planes = history_length * board_planes
-```
-
-## 3. ResNet + Square Attention
-
-Purpose:
-
-- test whether global square-to-square communication helps
-
-Architecture:
-
-```text
-conv stem
-residual tower
-flatten 8x8 into 64 square tokens
-square embeddings
-TransformerEncoder over square tokens
-policy/value heads
-```
-
-## 4. LSTM History
-
-Purpose:
-
-- test whether recurrent temporal memory helps
-
-Input:
-
-```text
-[batch, history_length, board_planes, 8, 8]
-```
-
-Architecture:
-
-```text
-shared CNN board encoder
-LSTM over board embeddings
-final hidden state
-policy/value heads
-```
-
-Internal sequence order should be oldest-to-newest.
-
-## 5. LSTM + Temporal Attention
-
-Purpose:
-
-- test whether selective recall over recurrent states helps
-
-Architecture:
-
-```text
-shared CNN board encoder
-LSTM over board embeddings
-current-query MultiheadAttention over LSTM outputs
-LayerNorm + residual
-policy/value heads
-```
-
-The current/newest LSTM output is the query.
-
-All LSTM outputs are keys and values.
-
-## 6. Temporal Transformer
-
-Purpose:
-
-- test whether full temporal attention beats recurrence
-
-Architecture:
-
-```text
-shared CNN board encoder
-time embeddings
-TransformerEncoder over board embeddings
-current-position token
-policy/value heads
-```
-
-## Later Optional: NNUE-Style Sparse Accumulator
-
-Purpose:
-
-- test whether sparse chess features plus a compact accumulator can improve
-  inference speed or strength per second under limited compute
-- compare a non-convolutional inductive bias against the ResNet and temporal
-  families
-
-This must be a McChess-defined architecture. Do not import Stockfish NNUE
-weights, train from engine evaluations, or use external best-move labels.
-
-Possible input:
-
-```text
-[batch, num_sparse_features]
-```
-
-or an incremental accumulator state derived from a documented sparse feature
-schema.
-
-Required outputs remain:
-
-```text
-policy_logits: [batch, 4672]
-value: [batch]
-```
-
-Design constraints:
-
-- legal move masking remains external and mandatory
-- feature encoding must include side-to-move perspective explicitly
-- castling and en-passant information must be represented if needed for policy
-  prediction
-- incremental accumulator updates, if implemented, must match full
-  recomputation in tests
-- report parameter count and positions/sec alongside loss or arena results
-
-An NNUE-style value-only scorer can be studied as a separate experimental bot,
-but it must be documented as value-only and cannot silently replace the
-policy/value model interface used by neural policy and MCTS components.
-
-## Architecture Comparison Requirements
-
-Each architecture needs:
-
-- config example
-- parameter count logging
-- forward shape test
-- backward smoke test
-- finite output test
-- inference speed measurement if possible
+All policy/value models return finite `policy_logits: [batch, 4672]` and
+`value: [batch]`. The value is bounded to `[-1, 1]` from the side-to-move
+perspective.
+Legal masking remains external and mandatory.
+
+## Implemented: Single-Board ResNet
+
+`PolicyValueResNet` in
+[src/mcchess/model/network.py](../src/mcchess/model/network.py) uses a convolutional
+stem, residual tower, and separate policy/value heads. Input is
+`[batch, 18, 8, 8]`.
+
+| Preset | Channels | Residual blocks | Value hidden size | Normalization |
+|---|---:|---:|---:|---|
+| `resnet_a` | 64 | 4 | 128 | None |
+| `resnet_b` | 64 | 6 | 128 | None |
+| `resnet_c` | 128 | 10 | 256 | BatchNorm |
+
+These are current built-in presets; historical run names do not override the
+model config saved in each checkpoint. In particular, earlier runs named
+ResNet-A used smaller inline configs.
+
+The published [epoch-30 artifact](../models_archive/README.md) is ResNet-C with
+**3,600,612 parameters**. Its exact config, checksum, source lineage, metrics,
+and limitations are in [manifest.json](../models_archive/manifest.json).
+It is inference-only.
+
+A/B retain their no-normalization design. BatchNorm or other normalization
+changes require explicit matched ablations. Completed training metrics alone
+are not a complete architecture comparison.
+
+## Deferred Architecture Studies
+
+None of the following families is implemented. Tensor and metadata details
+must be settled and documented before their milestones begin.
+
+| Family | Proposed computation | Question |
+|---|---|---|
+| History ResNet | Stack history planes as `[batch, history_planes, 8, 8]`; retain current-position metadata. | Does raw board history help? |
+| Square attention | ResNet features -> 64 square tokens with square embeddings -> Transformer encoder -> heads. | Does global square interaction help? |
+| LSTM history | Shared CNN per board -> oldest-to-newest LSTM -> final state -> heads. | Does recurrent memory help? |
+| LSTM with temporal attention | Current/newest LSTM output queries all LSTM outputs; attention, residual, LayerNorm, then heads. | Does selective history recall help? |
+| Temporal Transformer | Shared CNN embeddings, time embeddings, Transformer encoder, and current-position token -> heads. | Does temporal attention help compared with recurrence? |
+
+Sequence models would accept `[batch, history_length, board_planes, 8, 8]`.
+History padding and value perspective stay anchored to the current position.
+Check invalid history lengths and that attention-head count divides the hidden
+dimension. [ROADMAP.md](../ROADMAP.md) records milestone gates.
+
+## Later Optional: Sparse Accumulator
+
+An NNUE-style study would use a McChess-defined sparse feature schema, not
+imported Stockfish weights or external engine targets. Features must represent
+side to move and document castling/en-passant information needed for policy
+prediction. Any incremental accumulator must match full recomputation in tests.
+
+Keep the policy/value output contract above. A value-only scorer would require
+a separately documented experimental bot interface.
+
+## Comparison Gate
+
+Each new architecture needs a config, shape and invalid-input tests, finite
+outputs, a backward smoke test, parameter count, and inference speed.
+Comparisons must match dataset, split, seed, training budget, openings, and
+search settings; report speed alongside accuracy or arena score. Use the
+[evaluation protocol](EVALUATION_PROTOCOL.md).

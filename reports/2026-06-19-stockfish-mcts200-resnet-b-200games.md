@@ -42,6 +42,15 @@ poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts200_resne
   `runs/external_stockfish/stockfish_mcts200_resnet_b_elo_200games/`
 - Runtime: 26,181.7 seconds
 - Status: completed
+- Started: 2026-06-18T21:33:59.866225+00:00; completed:
+  2026-06-19T04:50:21.586859+00:00.
+- Training config:
+  `configs/train/lichess_2026_05_2000plus_resnet_b_epoch20_cached_batchmetrics.yaml`.
+
+The experiment asked what local Stockfish-UCI handicap estimate this ResNet-B
+checkpoint reaches with MCTS-200. Its recorded hypothesis was that MCTS-200
+would improve on policy-only play. This external benchmark by itself does not
+test that hypothesis against a matched policy-only control.
 
 ## Summary
 
