@@ -1,0 +1,50 @@
+# Use a fresh run_id and output_dir for each run; set STOCKFISH_PATH locally.
+run_id: stockfish_mcts1000_resnet_c_epoch30_batch8_2400_2800_probe_rerun
+output_dir: runs/external_stockfish/stockfish_mcts1000_resnet_c_epoch30_batch8_2400_2800_probe_rerun
+stockfish_path: null
+seed: 0
+max_ply: 180
+move_delay_seconds: 0.0
+print_moves: true
+agent:
+  kind: mcts
+  name: resnet_c_epoch30_mcts_1000_batch8
+  checkpoint_path: models_archive/resnet_c_epoch_030.pt
+  device: auto
+  simulations: 1000
+  c_puct: 1.5
+  inference_batch_size: 8
+stockfish_levels:
+- name: uci_elo_2400_t1s
+  games: 4
+  include_in_elo: true
+  options:
+    Skill Level: 20
+    UCI_LimitStrength: true
+    UCI_Elo: 2400
+    Threads: 1
+    Hash: 16
+  limit:
+    time: 1.0
+- name: uci_elo_2600_t1s
+  games: 4
+  include_in_elo: true
+  options:
+    Skill Level: 20
+    UCI_LimitStrength: true
+    UCI_Elo: 2600
+    Threads: 1
+    Hash: 16
+  limit:
+    time: 1.0
+- name: uci_elo_2800_t1s
+  games: 4
+  include_in_elo: true
+  options:
+    Skill Level: 20
+    UCI_LimitStrength: true
+    UCI_Elo: 2800
+    Threads: 1
+    Hash: 16
+  limit:
+    time: 1.0

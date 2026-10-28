@@ -32,11 +32,23 @@ in the [May 2026 training comparison](reports/2026-06-11-supervised-resnet-a-b-t
 
 ## External Stockfish Benchmarks
 
-Each run below includes 200 handicap games against Stockfish 18 `UCI_Elo`
+The [October 28 paired-opening benchmark](reports/2026-10-28-stockfish-resnet-c-epoch30-wide-ladder.md)
+evaluates the same epoch-30 model with MCTS-1000/batch 8 across ten Stockfish 18
+`UCI_Elo` levels from 1400 to 3190, at one second per opponent move. Twenty
+games per level cover ten fixed openings with swapped colors. Its 200 games
+finished **112 W / 46 D / 42 L, 67.5% score**, with no 400-ply cap draws.
+The rough local estimate is **2653 (2571–2736)**; the interval does not account
+for all opening dependencies or calibration uncertainty. The report includes
+the preceding 12-game probe, including its two 180-ply adjudications.
+
+The changed openings, level range, and move cap prevent a direct improvement
+claim against the earlier runs below. No engine output or benchmark result is
+used for training, checkpoint selection, or hyperparameter tuning.
+
+Each earlier run below includes 200 handicap games against Stockfish 18 `UCI_Elo`
 settings 1600–2500 at one second per opponent move. Two full-strength sanity
 games are excluded from these rows. Runs use the standard initial position,
-alternating colors, and a 180-ply draw cap. No engine output or benchmark result
-is used for training, checkpoint selection, or hyperparameter tuning.
+alternating colors, and a 180-ply draw cap.
 
 | Checkpoint / search | W / D / L (included games) | Score | Rough local UCI estimate (95% interval) | Report |
 |---|---|---:|---|---|

@@ -49,24 +49,25 @@ Both rows below evaluate the published epoch-30 ResNet-C model.
 | Evaluation | Scope | Result |
 |---|---|---|
 | Held-out human moves | First 40,000 positions of the test split | Legal top-1 **50.225%**, top-3 **78.3075%**, top-5 **88.0975%** |
-| External Stockfish benchmark | 200 included `UCI_Elo` handicap games | **150 wins / 37 draws / 13 losses; 84.25% score** |
+| External Stockfish benchmark | 200 games, `UCI_Elo` 1400–3190, 10 paired openings | **112 wins / 46 draws / 42 losses; 67.5% score** |
 
 The [supervised report](reports/2026-08-11-supervised-resnet-c-epoch30-test-40000.md)
 also records value MSE **0.857878**, against **0.941850** for a constant-zero
 predictor. This is a bounded test prefix, not the entire held-out split.
 
-The [external benchmark](reports/2026-08-12-stockfish-mcts1000-resnet-c-epoch30-200games.md)
-used MCTS-1000, inference batch size 8, `c_puct=1.5`, and Stockfish 18
-`UCI_Elo` settings 1600-2500 at 1.0 second per Stockfish move. All games began
-from the standard initial position, colors alternated, and nonterminal games
-were drawn at 180 plies. Two additional full-strength sanity games were both
-losses and are excluded from the 200-game score.
+The [October benchmark](reports/2026-10-28-stockfish-resnet-c-epoch30-wide-ladder.md)
+used MCTS-1000, inference batch size 8, `c_puct=1.5`, and Stockfish 18 at
+1.0 second per opponent move. Each level had 20 games: ten fixed openings,
+each played with both colors. McChess scored **60% at UCI 2600** and
+**37.5% at UCI 2800**. No game reached the 400-ply draw cap; all 200 game
+records passed legal replay and result checks.
 
-These are local protocol-specific measurements. Stockfish handicap settings
-are not FIDE, Lichess, or general engine ratings. The earlier
-[epoch-22 benchmark](reports/2026-07-16-stockfish-mcts1000-resnet-c-epoch22-200games.md)
-scored 84.75%; the two results do not establish improvement or regression.
-[RESULTS.md](RESULTS.md) retains earlier measurements and their limitations.
+The runner's rough local handicap estimate is **2653** (model interval
+2571–2736). This is not a FIDE, Lichess, or general engine rating; the interval
+does not cover all opening dependencies or calibration uncertainty. The same
+model's earlier runs used different openings, levels, and move caps, so their
+scores do not establish model improvement. [RESULTS.md](RESULTS.md) retains
+those runs, including the preliminary 12-game probe and full-strength losses.
 
 ## What Exists And What Remains
 

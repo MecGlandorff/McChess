@@ -142,6 +142,61 @@
       "mcts_simulations": 1000,
       "inference_batch_size": 8,
       "used_for_checkpoint_selection": false
+    },
+    "external_stockfish_wide_benchmark": {
+      "status": "completed",
+      "config_path": "configs/eval/stockfish_mcts1000_resnet_c_epoch30_batch8_1400_3190_paired10.yaml",
+      "result_path": "reports/data/stockfish_resnet_c_epoch30_1400_3190_paired10.json",
+      "result_sha256": "bd84793018303da2d17d9bf15ebd3e59e92fbe7a25bf73c2291ddc86f8fa2d8a",
+      "report_path": "reports/2026-10-28-stockfish-resnet-c-epoch30-wide-ladder.md",
+      "games": 200,
+      "included_games": 200,
+      "included_wins": 112,
+      "included_draws": 46,
+      "included_losses": 42,
+      "included_score": 0.675,
+      "mcts_simulations": 1000,
+      "inference_batch_size": 8,
+      "max_ply": 400,
+      "opening_protocol": "paired_fixed_fens",
+      "uci_elo_levels": [
+        1400,
+        1600,
+        1800,
+        2000,
+        2200,
+        2400,
+        2600,
+        2800,
+        3000,
+        3190
+      ],
+      "move_cap_draws": 0,
+      "used_for_checkpoint_selection": false
+    },
+    "external_stockfish_high_probe": {
+      "status": "completed",
+      "config_path": "configs/eval/stockfish_mcts1000_resnet_c_epoch30_batch8_2400_2800_probe.yaml",
+      "result_path": "reports/data/stockfish_resnet_c_epoch30_2400_2800_probe.json",
+      "result_sha256": "018785ee4b3f0f17205120846b189081000335530c78105c669c01a65012f6d0",
+      "report_path": "reports/2026-10-28-stockfish-resnet-c-epoch30-wide-ladder.md",
+      "games": 12,
+      "included_games": 12,
+      "included_wins": 4,
+      "included_draws": 6,
+      "included_losses": 2,
+      "included_score": 0.5833333333333334,
+      "mcts_simulations": 1000,
+      "inference_batch_size": 8,
+      "max_ply": 180,
+      "opening_protocol": "standard_initial_position",
+      "uci_elo_levels": [
+        2400,
+        2600,
+        2800
+      ],
+      "move_cap_draws": 2,
+      "used_for_checkpoint_selection": false
     }
   },
   "contracts": {
@@ -159,6 +214,6 @@
     "The value target is the final game result rather than a position evaluation.",
     "The model has no temporal history beyond state represented in the current FEN-derived board encoding.",
     "Legal move masking is mandatory.",
-    "External benchmarks use Stockfish UCI_Elo handicap settings from one starting position and do not establish a general Elo rating."
+    "External benchmarks use Stockfish UCI_Elo handicap settings with recorded starting-position protocols and do not establish a general Elo rating."
   ]
 }
