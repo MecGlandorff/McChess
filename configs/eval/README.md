@@ -132,6 +132,13 @@ new run ID and output directory before rerunning:
 poetry run python -m mcchess.eval.stockfish configs/eval/stockfish_mcts1000_resnet_c_epoch30_batch8_elo_200games.yaml --keep-awake
 ```
 
+The [October report](../../reports/2026-10-28-stockfish-resnet-c-epoch30-wide-ladder.md)
+adds a [200-game paired-opening config](stockfish_mcts1000_resnet_c_epoch30_batch8_1400_3190_paired10.yaml)
+for UCI 1400–3190 with a 400-ply cap and the preceding
+[12-game probe](stockfish_mcts1000_resnet_c_epoch30_batch8_2400_2800_probe.yaml).
+Both use the archived epoch-30 model and separate rerun destinations. Set
+`STOCKFISH_PATH` locally and choose a fresh run ID/output directory for every run.
+
 To watch moves in the terminal:
 
 ```powershell

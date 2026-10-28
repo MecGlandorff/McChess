@@ -7,6 +7,9 @@ the [evaluation protocol](../docs/EVALUATION_PROTOCOL.md).
 
 ## Published Epoch-30 Model
 
+- [October 200-game paired-opening benchmark and 12-game probe](2026-10-28-stockfish-resnet-c-epoch30-wide-ladder.md):
+  UCI 1400–3190, 112 W / 46 D / 42 L; [full JSON](data/stockfish_resnet_c_epoch30_1400_3190_paired10.json),
+  [probe JSON](data/stockfish_resnet_c_epoch30_2400_2800_probe.json).
 - [Completed 202-game external benchmark](2026-08-12-stockfish-mcts1000-resnet-c-epoch30-200games.md):
   200 included handicap games plus two full-strength sanity games; [JSON](data/stockfish_mcts1000_resnet_c_epoch30_batch8_elo_200games.json).
 - [Held-out supervised evaluation](2026-08-11-supervised-resnet-c-epoch30-test-40000.md):

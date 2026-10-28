@@ -1,0 +1,138 @@
+# Use a fresh run_id and output_dir for each run; set STOCKFISH_PATH locally.
+run_id: stockfish_mcts1000_resnet_c_epoch30_batch8_1400_3190_paired10_rerun
+output_dir: runs/external_stockfish/stockfish_mcts1000_resnet_c_epoch30_batch8_1400_3190_paired10_rerun
+stockfish_path: null
+seed: 0
+max_ply: 400
+move_delay_seconds: 0.0
+print_moves: true
+agent:
+  kind: mcts
+  name: resnet_c_epoch30_mcts_1000_batch8
+  checkpoint_path: models_archive/resnet_c_epoch_030.pt
+  device: auto
+  simulations: 1000
+  c_puct: 1.5
+  inference_batch_size: 8
+stockfish_levels:
+- name: uci_elo_1400_t1s
+  games: 20
+  include_in_elo: true
+  options:
+    Skill Level: 20
+    UCI_LimitStrength: true
+    UCI_Elo: 1400
+    Threads: 1
+    Hash: 16
+  limit:
+    time: 1.0
+- name: uci_elo_1600_t1s
+  games: 20
+  include_in_elo: true
+  options:
+    Skill Level: 20
+    UCI_LimitStrength: true
+    UCI_Elo: 1600
+    Threads: 1
+    Hash: 16
+  limit:
+    time: 1.0
+- name: uci_elo_1800_t1s
+  games: 20
+  include_in_elo: true
+  options:
+    Skill Level: 20
+    UCI_LimitStrength: true
+    UCI_Elo: 1800
+    Threads: 1
+    Hash: 16
+  limit:
+    time: 1.0
+- name: uci_elo_2000_t1s
+  games: 20
+  include_in_elo: true
+  options:
+    Skill Level: 20
+    UCI_LimitStrength: true
+    UCI_Elo: 2000
+    Threads: 1
+    Hash: 16
+  limit:
+    time: 1.0
+- name: uci_elo_2200_t1s
+  games: 20
+  include_in_elo: true
+  options:
+    Skill Level: 20
+    UCI_LimitStrength: true
+    UCI_Elo: 2200
+    Threads: 1
+    Hash: 16
+  limit:
+    time: 1.0
+- name: uci_elo_2400_t1s
+  games: 20
+  include_in_elo: true
+  options:
+    Skill Level: 20
+    UCI_LimitStrength: true
+    UCI_Elo: 2400
+    Threads: 1
+    Hash: 16
+  limit:
+    time: 1.0
+- name: uci_elo_2600_t1s
+  games: 20
+  include_in_elo: true
+  options:
+    Skill Level: 20
+    UCI_LimitStrength: true
+    UCI_Elo: 2600
+    Threads: 1
+    Hash: 16
+  limit:
+    time: 1.0
+- name: uci_elo_2800_t1s
+  games: 20
+  include_in_elo: true
+  options:
+    Skill Level: 20
+    UCI_LimitStrength: true
+    UCI_Elo: 2800
+    Threads: 1
+    Hash: 16
+  limit:
+    time: 1.0
+- name: uci_elo_3000_t1s
+  games: 20
+  include_in_elo: true
+  options:
+    Skill Level: 20
+    UCI_LimitStrength: true
+    UCI_Elo: 3000
+    Threads: 1
+    Hash: 16
+  limit:
+    time: 1.0
+- name: uci_elo_3190_t1s
+  games: 20
+  include_in_elo: true
+  options:
+    Skill Level: 20
+    UCI_LimitStrength: true
+    UCI_Elo: 3190
+    Threads: 1
+    Hash: 16
+  limit:
+    time: 1.0
+opening_fens:
+- r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4
+- r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4
+- rnbqkbnr/pp2pppp/3p4/8/3pP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 4
+- rnbqkb1r/ppp2ppp/4pn2/3p4/3PP3/2N5/PPP2PPP/R1BQKBNR w KQkq - 2 4
+- rnbqkbnr/pp2pppp/2p5/8/3Pp3/2N5/PPP2PPP/R1BQKBNR w KQkq - 0 4
+- rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 2 4
+- rnbqkb1r/pp2pppp/2p2n2/3p4/2PP4/5N2/PP2PPPP/RNBQKB1R w KQkq - 2 4
+- rnbqk2r/pppp1ppp/4pn2/8/1bPP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 2 4
+- rnbqk2r/ppppppbp/5np1/8/2PP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 2 4
+- rnbqkb1r/ppp2ppp/5n2/3pp3/2P5/2N3P1/PP1PPP1P/R1BQKBNR w KQkq - 0 4

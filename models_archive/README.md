@@ -44,11 +44,12 @@ move. A separate 40,000-position held-out test-prefix evaluation recorded
 legal-masked top-1/top-3/top-5 accuracies of 0.50225/0.783075/0.880975 and value
 MSE 0.857878. See the
 [evaluation report](../reports/2026-08-11-supervised-resnet-c-epoch30-test-40000.md)
-for protocol and interpretation limits. The completed
-[202-game external benchmark](../reports/2026-08-12-stockfish-mcts1000-resnet-c-epoch30-200games.md)
-records 150 wins, 37 draws, and 13 losses across its 200 included handicap games;
-two full-strength sanity games were losses. The manifest links the published
-result JSON and its checksum.
+for protocol and interpretation limits. The
+[October external benchmark](../reports/2026-10-28-stockfish-resnet-c-epoch30-wide-ladder.md)
+records 112 wins, 46 draws, and 42 losses over 200 UCI-handicap games from ten
+paired openings. The manifest links both October runs and the earlier
+[202-game benchmark](../reports/2026-08-12-stockfish-mcts1000-resnet-c-epoch30-200games.md),
+including their result checksums. Model weights are unchanged between these runs.
 
 ## Scope
 
