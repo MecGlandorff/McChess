@@ -3,6 +3,14 @@
 [![CI](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MecGlandorff/McChess/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+> **Current local Stockfish-UCI rating estimate: 2653**
+>
+> **Rough 95% model interval: 2571–2736**
+>
+> 200 games · ResNet-C epoch 30 · MCTS-1000/batch 8 · Stockfish 18 at 1 s/move.
+> Protocol-specific, not a FIDE or Lichess rating.
+> [Results, protocol, and limitations](reports/2026-10-28-stockfish-resnet-c-epoch30-wide-ladder.md).
+
 McChess is a compact neural chess research system trained on human games.
 It combines a PyTorch policy/value ResNet with explicit legal move masking and
 fixed-budget MCTS. The repository includes a **3.6M-parameter epoch-30
@@ -62,9 +70,8 @@ each played with both colors. McChess scored **60% at UCI 2600** and
 **37.5% at UCI 2800**. No game reached the 400-ply draw cap; all 200 game
 records passed legal replay and result checks.
 
-The runner's rough local handicap estimate is **2653** (model interval
-2571–2736). This is not a FIDE, Lichess, or general engine rating; the interval
-does not cover all opening dependencies or calibration uncertainty. The same
+The interval above does not cover all opening dependencies or calibration
+uncertainty. The estimate is not a general engine rating. The same
 model's earlier runs used different openings, levels, and move caps, so their
 scores do not establish model improvement. [RESULTS.md](RESULTS.md) retains
 those runs, including the preliminary 12-game probe and full-strength losses.
