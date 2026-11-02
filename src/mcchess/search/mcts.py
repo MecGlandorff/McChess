@@ -34,6 +34,7 @@ class MCTSConfig:
     simulations: int = 50
     c_puct: float = 1.5
     inference_batch_size: int = 1
+    fpu_reduction: float | None = None
 
     def __post_init__(self) -> None:
         if self.simulations <= 0:
@@ -42,6 +43,12 @@ class MCTSConfig:
             raise ValueError("c_puct must be a positive finite value")
         if self.inference_batch_size <= 0:
             raise ValueError("inference_batch_size must be positive")
+
+        if self.fpu_reduction is not None:
+            if not math.isfinite(self.fpu_reduction) or self.fpu_reduction < 0.0:
+                raise ValueError("fpu_reduction must be finite and non-negative")
+            if self.inference_batch_size != 1:
+                raise ValueError("FPU currently requires inference_batch_size=1")
 
 
 @dataclass
@@ -71,6 +78,7 @@ class SearchNode:
     terminal: bool = False
     edges: list[SearchEdge] = field(default_factory=list)
     visit_count: int = 0
+    network_value: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -160,8 +168,9 @@ class MCTSSearch:
 
         edge_batches, values = self._evaluate_nonterminal_boards([board])
         node.edges = edge_batches[0]
+        node.network_value = float(values[0])
         node.expanded = True
-        return float(values[0])
+        return node.network_value
 
     def _evaluate_nonterminal_boards(
         self,
@@ -312,24 +321,34 @@ class MCTSSearch:
 
         for index, group in enumerate(groups):
             group.node.edges = edge_batches[index]
+            group.node.network_value = float(values[index])
             group.node.expanded = True
-            leaf_value = float(values[index])
+
             for path in group.paths:
-                backup_reserved_value(path, leaf_value)
+                backup_reserved_value(path, group.node.network_value)
 
     def _select_edge(self, node: SearchNode) -> SearchEdge:
         if not node.edges:
             raise RuntimeError("cannot select from a node with no outgoing edges")
 
-        parent_visits = max(1, node.visit_count)
-        exploration_base = math.sqrt(parent_visits)
+        fpu_value = 0.0  # default value, overruled by config value. 0.20 should be first eval.
+        if self.config.fpu_reduction is not None:
+            fpu_value = max(-1.0, node.network_value - self.config.fpu_reduction)
+
+        exploration_base = math.sqrt(max(1, node.visit_count))
         best_edge = node.edges[0]
         best_score = -math.inf
 
         for edge in node.edges:
-            score = edge.mean_value + (
-                self.config.c_puct * edge.prior * exploration_base / (1 + edge.visit_count)
+            q = edge.mean_value if edge.visit_count > 0 else fpu_value
+            u = (
+                self.config.c_puct
+                * edge.prior
+                * exploration_base
+                / (1 + edge.visit_count)
             )
+
+            score = q + u
             if score > best_score:
                 best_edge = edge
                 best_score = score
