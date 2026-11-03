@@ -7,6 +7,7 @@ the [evaluation protocol](../docs/EVALUATION_PROTOCOL.md).
 
 ## Published Epoch-30 Model
 
+- [FPU 0.20 pilot](2026-11-03-fpu-pilot.md): 20 internal games at MCTS-200/batch 1.
 - [October 200-game paired-opening benchmark and 12-game probe](2026-10-28-stockfish-resnet-c-epoch30-wide-ladder.md):
   UCI 1400–3190, 112 W / 46 D / 42 L; [full JSON](data/stockfish_resnet_c_epoch30_1400_3190_paired10.json),
   [probe JSON](data/stockfish_resnet_c_epoch30_2400_2800_probe.json).

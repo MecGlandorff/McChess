@@ -331,7 +331,7 @@ class MCTSSearch:
         if not node.edges:
             raise RuntimeError("cannot select from a node with no outgoing edges")
 
-        fpu_value = 0.0  # default value, overruled by config value. 0.20 should be first eval.
+        fpu_value = 0.0
         if self.config.fpu_reduction is not None:
             fpu_value = max(-1.0, node.network_value - self.config.fpu_reduction)
 
