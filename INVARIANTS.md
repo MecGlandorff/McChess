@@ -80,6 +80,8 @@ external best-move labels.
 - Policy priors must be generated from legally masked policy logits.
 - Leaf values are interpreted from the side-to-move perspective at the leaf.
 - Backup must flip the value sign at every ply.
+- Optional FPU changes selection values for unvisited edges only -> stored node
+  values stay in the node's side-to-move perspective. See [DESIGN.md](DESIGN.md#bots-and-mcts).
 - Terminal states must not be evaluated as ordinary nonterminal leaves.
 - Non-default batched MCTS inference must be recorded as part of the evaluation
   protocol because virtual visit reservations can change search trajectories.

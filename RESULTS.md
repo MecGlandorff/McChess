@@ -64,6 +64,8 @@ is retained alongside the completed run.
 
 ## Internal Diagnostics And Open Questions
 
+- [FPU 0.20 pilot](reports/2026-11-03-fpu-pilot.md): 7 W / 11 D / 2 L against
+  disabled FPU at 200 simulations, batch 1;ten opening pairs, no general strength claim.
 - [Tiny training checks](reports/2026-06-01-tiny-loss-smoke.md) retain early
   overfit and validation observations.
 - [Policy-only determinism](reports/2026-06-17-policy-arena-determinism.md) and

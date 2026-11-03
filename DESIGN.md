@@ -128,6 +128,14 @@ root move by visits, then mean value and prior. Values change sign at every
 backup ply. Terminal outcomes use game rules rather than neural evaluation.
 Board copies retain move history for repetition and claimable draws.
 
+Unvisited edges use Q=0 by default. Optional first-play urgency (FPU), set
+through MCTSConfig(fpu_reduction=r), instead uses
+Q=max(-1, node.network_value - r) from the parent side-to-move perspective.
+Visited edges keep their backed-up mean value. None disables FPU; `0.0`
+uses the node value without a reduction. The reduction must be finite and
+non-negative. FPU curently requires `inference_batch_size=1`: batched visit
+reservations count as visits before their values return.
+
 Model calls use `torch.inference_mode()`; checkpoint loading also sets eval
 mode. Direct `MCTSSearch` callers must provide an eval-mode model themselves.
 Legal moves are indexed once per expansion, softmax covers only legal logits,
