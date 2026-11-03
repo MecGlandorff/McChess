@@ -18,7 +18,7 @@ else:
     _TK_IMPORT_ERROR = None
 
 if TYPE_CHECKING:
-    from mcchess.eval.stockfish import StockfishGameRecord
+    from mcchess.eval.stockfish_types import StockfishGameRecord
 
 LIGHT_SQUARE = "#f0d9b5"
 DARK_SQUARE = "#b58863"

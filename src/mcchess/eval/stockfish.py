@@ -1,4 +1,4 @@
-"""CLI facade for the external Stockfish benchmark.
+"""CLI for the external Stockfish benchmark.
 
 Stockfish is allowed here only as an external evaluation opponent. Moves,
 evaluations, and outcomes from this benchmark must not be used as training
@@ -18,38 +18,16 @@ from typing import Any
 import chess.engine
 from tqdm.auto import tqdm  # type: ignore[import-untyped]
 
-from mcchess.eval.arena import build_bot
 from mcchess.eval.common import git_commit as current_git_commit
 from mcchess.eval.keep_awake import keep_system_awake
-from mcchess.eval.openings import opening_protocol
-from mcchess.eval.stockfish_artifacts import (
-    GAME_CSV_FIELDS,
-    format_markdown_report,
-    game_summary_rows,
-    write_artifacts,
-)
-from mcchess.eval.stockfish_protocol import (
-    COLOR_POLICY,
-    DRAW_RULE,
-    SCOPE_NOTE,
-    GameCallback,
+from mcchess.eval.stockfish_artifacts import write_artifacts
+from mcchess.eval.stockfish_config import load_config
+from mcchess.eval.stockfish_runner import run_stockfish_match, setup_failure_result
+from mcchess.eval.stockfish_types import (
     MoveCallback,
-    ScheduledStockfishGame,
     StockfishEvalConfig,
     StockfishGameRecord,
-    StockfishLevelConfig,
-    iter_scheduled_games,
-    load_config,
-    play_stockfish_game,
 )
-from mcchess.eval.stockfish_rating import (
-    EloEstimate,
-    estimate_mcchess_elo,
-    insufficient_elo_estimate,
-)
-from mcchess.eval.stockfish_runner import run_stockfish_match as _run_stockfish_match
-from mcchess.eval.stockfish_runner import setup_failure_result
-from mcchess.eval.stockfish_utils import UciEngine
 from mcchess.eval.stockfish_utils import resolve_stockfish_path as resolve_stockfish_binary_path
 
 StockfishEvalViewer: Any = None
@@ -59,32 +37,6 @@ def resolve_stockfish_path(config: StockfishEvalConfig, override: str | None = N
     """Resolve Stockfish from CLI override, config, environment, or PATH."""
 
     return resolve_stockfish_binary_path(config.stockfish_path, override)
-
-
-def run_stockfish_match(
-    config: StockfishEvalConfig,
-    engine: UciEngine,
-    *,
-    stockfish_id: dict[str, str] | None = None,
-    stockfish_available_options: list[str] | None = None,
-    git_commit: str | None = None,
-    config_path: str | None = None,
-    move_callback: MoveCallback | None = None,
-    game_callback: GameCallback | None = None,
-) -> dict[str, Any]:
-    """Run the benchmark while preserving this module's patchable bot builder."""
-
-    return _run_stockfish_match(
-        config,
-        engine,
-        stockfish_id=stockfish_id,
-        stockfish_available_options=stockfish_available_options,
-        git_commit=git_commit,
-        config_path=config_path,
-        move_callback=move_callback,
-        game_callback=game_callback,
-        bot_builder=build_bot,
-    )
 
 
 def print_move_event(event: dict[str, Any]) -> None:
@@ -305,34 +257,7 @@ def _viewer_class() -> Any:
     return StockfishEvalViewer
 
 
-__all__ = [
-    "COLOR_POLICY",
-    "DRAW_RULE",
-    "GAME_CSV_FIELDS",
-    "SCOPE_NOTE",
-    "EloEstimate",
-    "ScheduledStockfishGame",
-    "StockfishEvalConfig",
-    "StockfishGameRecord",
-    "StockfishLevelConfig",
-    "combine_game_callbacks",
-    "combine_move_callbacks",
-    "estimate_mcchess_elo",
-    "format_markdown_report",
-    "game_summary_rows",
-    "insufficient_elo_estimate",
-    "iter_scheduled_games",
-    "load_config",
-    "main",
-    "opening_protocol",
-    "parse_args",
-    "play_stockfish_game",
-    "print_move_event",
-    "resolve_stockfish_path",
-    "run_stockfish_eval",
-    "run_stockfish_match",
-    "write_artifacts",
-]
+__all__ = ["main", "run_stockfish_eval"]
 
 
 if __name__ == "__main__":

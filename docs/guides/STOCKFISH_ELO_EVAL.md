@@ -185,3 +185,22 @@ For a reportable entry, rerun the benchmark from committed code and record:
 - output artifact paths
 
 Keep failed or inconclusive runs if they reveal a protocol problem.
+
+## Python Imports
+
+`mcchess.eval.stockfish` exposes `main` and `run_stockfish_eval`. Python callers
+should import other helpers from their implementation modules:
+
+| Helpers | Module under `mcchess.eval` |
+|---|---|
+| Config and game dataclasses, callback types, protocol constants | `stockfish_types` |
+| Config loading, scheduling, protocol summaries | `stockfish_config` |
+| Single-game execution | `stockfish_game` |
+| Match execution and setup-failure results | `stockfish_runner` |
+| Rating estimates | `stockfish_rating` |
+| Artifact and report writers | `stockfish_artifacts` |
+| Opening protocol helpers | `openings` |
+
+The `stockfish_protocol` compatibility module and the CLI's helper re-exports
+have been removed. Update imports to the modules above. The terminal commands,
+config formats, and output files are unchanged.

@@ -12,19 +12,18 @@ from typing import Any, Protocol
 from mcchess.bots import Bot
 from mcchess.eval.arena import BotConfig, build_bot
 from mcchess.eval.schema import result_envelope
-from mcchess.eval.stockfish_protocol import (
+from mcchess.eval.stockfish_config import iter_scheduled_games, protocol_summary
+from mcchess.eval.stockfish_game import play_stockfish_game
+from mcchess.eval.stockfish_rating import estimate_mcchess_elo, insufficient_elo_estimate
+from mcchess.eval.stockfish_types import (
     COLOR_POLICY,
     DRAW_RULE,
+    SCOPE_NOTE,
     GameCallback,
     MoveCallback,
-    SCOPE_NOTE,
     StockfishEvalConfig,
     StockfishGameRecord,
-    iter_scheduled_games,
-    play_stockfish_game,
-    protocol_summary,
 )
-from mcchess.eval.stockfish_rating import estimate_mcchess_elo, insufficient_elo_estimate
 from mcchess.eval.stockfish_utils import UciEngine
 
 

@@ -10,7 +10,7 @@ from typing import Any, Final, cast
 import yaml  # type: ignore[import-untyped]
 
 from mcchess.eval.common import write_csv, write_json_atomic, write_text_atomic
-from mcchess.eval.stockfish_protocol import SCOPE_NOTE, StockfishEvalConfig
+from mcchess.eval.stockfish_types import SCOPE_NOTE, StockfishEvalConfig
 
 GAME_CSV_FIELDS: Final[list[str]] = [
     "Game",

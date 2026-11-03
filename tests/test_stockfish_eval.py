@@ -11,19 +11,19 @@ import yaml  # type: ignore[import-untyped]
 from mcchess.eval import stockfish as stockfish_module
 from mcchess.eval import stockfish_ladder as ladder_module
 from mcchess.eval.arena import BotConfig
-from mcchess.eval.openings import PAIRED_FEN_OPENING_PROTOCOL
-from mcchess.eval.stockfish import (
+from mcchess.eval.openings import PAIRED_FEN_OPENING_PROTOCOL, opening_protocol
+from mcchess.eval.stockfish_artifacts import format_markdown_report, game_summary_rows
+from mcchess.eval.stockfish_config import iter_scheduled_games, load_config
+from mcchess.eval.stockfish_game import play_stockfish_game
+from mcchess.eval.stockfish_gui import StockfishEvalViewer
+from mcchess.eval.stockfish_rating import estimate_mcchess_elo
+from mcchess.eval.stockfish_runner import run_stockfish_match
+from mcchess.eval.stockfish_types import (
     ScheduledStockfishGame,
     StockfishEvalConfig,
     StockfishGameRecord,
     StockfishLevelConfig,
-    estimate_mcchess_elo,
-    format_markdown_report,
-    game_summary_rows,
-    iter_scheduled_games,
-    play_stockfish_game,
 )
-from mcchess.eval.stockfish_gui import StockfishEvalViewer
 
 REPORT_CONFIG_PATH = (
     Path(__file__).resolve().parents[1]
@@ -288,7 +288,7 @@ def test_schedule_pairs_configured_opening_fens_within_each_level() -> None:
 
     scheduled = iter_scheduled_games(config)
 
-    assert stockfish_module.opening_protocol(config.opening_fens) == PAIRED_FEN_OPENING_PROTOCOL
+    assert opening_protocol(config.opening_fens) == PAIRED_FEN_OPENING_PROTOCOL
     assert [game.opening_index for game in scheduled] == [0, 0, 1, 1]
     assert [game.starting_fen for game in scheduled] == [
         first.fen(),
@@ -375,9 +375,7 @@ def test_game_summary_rows_show_winner_name_and_mcchess_score() -> None:
     assert row["Included in Elo"] == "yes"
 
 
-def test_run_stockfish_match_aggregates_from_mcchess_perspective(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_run_stockfish_match_aggregates_from_mcchess_perspective() -> None:
     config = eval_config([elo_level(1600, games=1)])
     engine = ScriptedEngine(["e7e5", "b8c6", "g8f6"])
 
@@ -385,9 +383,7 @@ def test_run_stockfish_match_aggregates_from_mcchess_perspective(
         del config, default_seed
         return ScriptedBot("mcchess", ["e2e4", "d1h5", "f1c4", "h5f7"])
 
-    monkeypatch.setattr(stockfish_module, "build_bot", fake_build_bot)
-
-    result = stockfish_module.run_stockfish_match(config, engine)
+    result = run_stockfish_match(config, engine, bot_builder=fake_build_bot)
 
     assert result["schema_version"] == 2
     assert result["run"]["status"] == "completed"
@@ -439,7 +435,7 @@ def test_run_stockfish_eval_module_loads_config_and_resolves_path(tmp_path: Path
         encoding="utf-8",
     )
 
-    config = stockfish_module.load_config(config_path)
+    config = load_config(config_path)
 
     assert config.run_id == "stockfish_script_test"
     assert config.num_games == 4
@@ -480,7 +476,7 @@ def test_run_stockfish_eval_scopes_keep_awake_around_run(
 
 
 def test_report_scale_stockfish_config_has_200_elo_games() -> None:
-    config = stockfish_module.load_config(REPORT_CONFIG_PATH)
+    config = load_config(REPORT_CONFIG_PATH)
 
     assert config.num_games == 202
     included_games = sum(level.games for level in config.stockfish_levels if level.include_in_elo)
@@ -490,9 +486,9 @@ def test_report_scale_stockfish_config_has_200_elo_games() -> None:
 
 
 def test_resnet_c_batch8_configs_keep_smoke_and_report_runs_separate() -> None:
-    smoke = stockfish_module.load_config(BATCH8_SMOKE_CONFIG_PATH)
-    mcts1000_smoke = stockfish_module.load_config(BATCH8_MCTS1000_SMOKE_CONFIG_PATH)
-    report = stockfish_module.load_config(BATCH8_REPORT_CONFIG_PATH)
+    smoke = load_config(BATCH8_SMOKE_CONFIG_PATH)
+    mcts1000_smoke = load_config(BATCH8_MCTS1000_SMOKE_CONFIG_PATH)
+    report = load_config(BATCH8_REPORT_CONFIG_PATH)
 
     assert smoke.num_games == 22
     assert smoke.agent.simulations == 200

@@ -10,7 +10,7 @@ from typing import Any
 import chess
 import pytest
 
-from mcchess.eval.stockfish import iter_scheduled_games, load_config
+from mcchess.eval.stockfish_config import iter_scheduled_games, load_config
 from mcchess.eval.stockfish_rating import estimate_mcchess_elo
 from mcchess.eval.stockfish_types import StockfishGameRecord
 

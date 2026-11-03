@@ -156,26 +156,21 @@ McChess is stronger than Stockfish.
 
 ## Writing Voice
 
-Write documentation, README copy, PR descriptions, comments, and other
-user-facing text in plain engineering prose.
+Write docs, PR descriptions, commit messages, and comments like a human
+maintainer: concise, structured, and concrete. Avoid marketing language,
+generated filler, repeated summaries, and vague claims of quality.
 
-Avoid AI-flavored or marketing-like phrasing such as "it works signal",
-"seamless", "powerful", "game-changing", "unlock", "showcase", or vague claims
-of quality. Prefer concrete descriptions of what exists, how to run it, what
-artifact it writes, and what limitation remains.
+- Docs: explain what exists, how to use it, and relevant limitations. Update
+  the existing explanation instead of adding duplicate sections or boilerplate.
+- PR descriptions: lead with the problem and changed behavior, then report
+  relevant validation. Scale detail to the change; small PRs usually need only
+  one or two sentences plus check results.
+- Commits: keep each commit focused on one coherent change. Use a short,
+  specific subject; add a body when the rationale is not clear from the diff.
+  Separate unrelated cleanup from functional changes.
 
-Prefer:
-
-```text
-Open `notebooks/bot_vs_bot.ipynb` to watch two local policy-only checkpoints
-play a live board.
-```
-
-Avoid:
-
-```text
-This notebook provides an immediate "it works" signal.
-```
+Prefer runnable commands, concrete examples, and measured findings over claims
+that the code is clean, powerful, or production-ready.
 
 ## Preferred Workflow
 
