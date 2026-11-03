@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from mcchess.eval.stockfish_protocol import StockfishGameRecord
+from mcchess.eval.stockfish_types import StockfishGameRecord
 
 
 @dataclass(frozen=True)
